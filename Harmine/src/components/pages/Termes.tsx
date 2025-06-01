@@ -1,4 +1,3 @@
-import React from "react";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin } from "lucide-react";
 import Footer from "./Footer";
@@ -6,18 +5,18 @@ import Navbar from "./Navbar";
 import CookieConsentBanner from "../cookies/CookieConsentBanner";
 
 export default function Termes() {
-  const renderSection = (title, content) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      viewport={{ once: true }}
-      className="bg-white/5 rounded-2xl p-6 border border-white/10 hover:border-blue-500 transition-all mb-8"
-    >
-      <h2 className="text-2xl font-bold text-white mb-4">{title}</h2>
-      <div className="text-gray-300">{content}</div>
-    </motion.div>
-  );
+  const renderSection = (title: string, content: React.ReactNode) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    viewport={{ once: true }}
+    className="bg-white/5 rounded-2xl p-6 border border-white/10 hover:border-blue-500 transition-all mb-8"
+  >
+    <h2 className="text-2xl font-bold text-white mb-4">{title}</h2>
+    <div className="text-gray-300">{content}</div>
+  </motion.div>
+);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-blue-950 text-gray-200">
