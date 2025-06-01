@@ -1,16 +1,24 @@
 # Fichiers d'environnement
-server/.env
-server/.env.local
-server/.env.*
-Harmine/.env
-Harmine/.env.local
-Harmine/.env.*
-
-# Clés Google Cloud
-server/config/coursier-8f010-9427ca5ddde9.json
-server/config/*.json  # Pour tout fichier JSON dans config/
-
-# Autres fichiers sensibles
-node_modules/
 .env
+.env.local
+.env.development
+.env.production
+.env.*
+
+# Clés et configurations sensibles
+config/*.json
+server/config/*.json
+*.key
+*.pem
+
+# Dependencies
+node_modules/
+
+# Logs
 *.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
