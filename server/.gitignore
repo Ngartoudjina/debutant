@@ -1,11 +1,11 @@
 # Fichiers d'environnement
-server/.env
-server/.env.local
-server/.env.*
+.env
+.env.local
+.env.*
 
 # Clés Google Cloud
-server/config/coursier-8f010-9427ca5ddde9.json
-server/config/*.json  # Pour tout fichier JSON dans config/
+config/coursier-8f010-9427ca5ddde9.json
+config/*.json  # Pour tout fichier JSON dans config/
 
 # Autres fichiers sensibles
 node_modules/
