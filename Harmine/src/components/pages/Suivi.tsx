@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import {
   Cloud as CloudIcon,
@@ -11,7 +11,6 @@ import {
   User,
   MessageSquare,
   Star,
-  ChevronRight,
   Check,
   AlertCircle,
   Bell,
@@ -23,7 +22,6 @@ import {
   Moon,
   Scale,
   CalendarClock,
-  Search,
   Menu,
   X,
   Truck,
@@ -58,9 +56,10 @@ import {
   CartesianGrid,
 } from "recharts";
 import { useLocation, Link, useNavigate } from "react-router-dom";
+import { API_URL } from "../config";
 
 // Fix Leaflet marker icon issue
-delete L.Icon.Default.prototype._getIconUrl;
+delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
@@ -107,10 +106,10 @@ interface DeliveryStatus {
   status: "PENDING" | "IN_PROGRESS" | "DELIVERED" | "CANCELLED";
   estimatedTime: string;
   trackingNumber: string;
-  pickupAddress: string; // Changé en string pour correspondre au rendu
-  deliveryAddress: string; // Changé en string pour correspondre au rendu
-  pickupCoords: Address; // Ajouté pour stocker les coordonnées complètes
-  deliveryCoords: Address; // Ajouté pour stocker les coordonnées complètes
+  pickupAddress: string;
+  deliveryAddress: string;
+  pickupCoords: Address;
+  deliveryCoords: Address;
   currentLocation: { lat: number; lng: number };
   destination: { lat: number; lng: number };
   routeHistory: RoutePoint[];
@@ -902,16 +901,6 @@ const Suivi = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-  }, [darkMode]);
-
-  const togleDarkMode = () => {
-    setDarkMode((prev) => !prev);
-  };
-
   // Gérer l'orderId depuis location.state
   useEffect(() => {
     const { orderId: newOrderId } = location.state || {};
@@ -945,16 +934,13 @@ const Suivi = () => {
         // Utiliser l'orderId si disponible, sinon récupérer la dernière commande
         let order;
         if (orderId) {
-          const response = await fetch(
-            `http://localhost:5000/api/commandes/${orderId}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await fetch(`${API_URL}/api/commandes/${orderId}`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
           const result = await response.json();
           if (!response.ok) {
             throw new Error(
@@ -963,16 +949,13 @@ const Suivi = () => {
           }
           order = result.data;
         } else {
-          const response = await fetch(
-            "http://localhost:5000/api/commandes/user",
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await fetch(`${API_URL}/api/commandes/user`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
           const result = await response.json();
           if (!response.ok) {
             throw new Error(
@@ -993,7 +976,7 @@ const Suivi = () => {
 
         // Récupérer les informations du coursier
         const courierResponse = await fetch(
-          `http://localhost:5000/api/truecoursiers/${order.courierId}`,
+          `${API_URL}/api/truecoursiers/${order.courierId}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -1034,10 +1017,10 @@ const Suivi = () => {
             { hour: "2-digit", minute: "2-digit" }
           ),
           trackingNumber: order.id.slice(0, 8).toUpperCase(),
-          pickupAddress: order.pickupAddress.address, // Utiliser la propriété address
-          deliveryAddress: order.deliveryAddress.address, // Utiliser la propriété address
-          pickupCoords, // Stocker les coordonnées complètes
-          deliveryCoords, // Stocker les coordonnées complètes
+          pickupAddress: order.pickupAddress.address,
+          deliveryAddress: order.deliveryAddress.address,
+          pickupCoords,
+          deliveryCoords,
           currentLocation: { lat: pickupCoords.lat, lng: pickupCoords.lng },
           destination: { lat: deliveryCoords.lat, lng: deliveryCoords.lng },
           routeHistory: [
@@ -1100,29 +1083,29 @@ const Suivi = () => {
         (deliveryStatus.destination.lng - deliveryStatus.currentLocation.lng) *
           0.05;
 
-      setDeliveryStatus(
-        (prev) =>
-          prev && {
-            ...prev,
-            currentLocation: {
-              lat: newLat,
-              lng: newLng,
+      setDeliveryStatus((prev: DeliveryStatus | null) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          currentLocation: {
+            lat: newLat,
+            lng: newLng,
+          },
+          eta: Math.max(prev.eta - 1, 1),
+          distance: Math.max(prev.distance - 0.1, 0.1),
+          routeHistory: [
+            ...prev.routeHistory,
+            {
+              time: new Date().toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              location: [newLat, newLng],
+              status: "En progression",
             },
-            eta: Math.max(prev.eta - 1, 1),
-            distance: Math.max(prev.distance - 0.1, 0.1),
-            routeHistory: [
-              ...prev.routeHistory,
-              {
-                time: new Date().toLocaleTimeString("fr-FR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-                location: [newLat, newLng],
-                status: "En progression",
-              },
-            ].slice(-10),
-          }
-      );
+          ].slice(-10),
+        };
+      });
 
       setRoute([
         [newLat, newLng],
@@ -1167,7 +1150,10 @@ const Suivi = () => {
   };
 
   const handleFeedbackSubmit = async (feedback: Feedback) => {
-    if (!deliveryStatus || !orderId) return navigate("/reserv");
+    if (!deliveryStatus || !orderId) {
+      navigate("/reserv");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -1176,22 +1162,19 @@ const Suivi = () => {
         throw new Error("Utilisateur non connecté");
       }
 
-      const response = await fetch(
-        "http://localhost:5000/api/feedback/submit",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            orderId,
-            courierId: deliveryStatus.courier.id,
-            rating: feedback.rating,
-            comment: feedback.comment,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/feedback/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          orderId,
+          courierId: deliveryStatus.courier.id,
+          rating: feedback.rating,
+          comment: feedback.comment,
+        }),
+      });
 
       const result = await response.json();
       if (!response.ok) {
@@ -1280,7 +1263,10 @@ const Suivi = () => {
       <Cloud className="w-64 h-64 bottom-20 left-20 opacity-20" />
 
       <Navbar />
-      <ThemeToggle darkMode={darkMode} toggleDarkMode={togleDarkMode} />
+      <ThemeToggle
+        darkMode={isDarkMode}
+        toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+      />
       <ToastContainer
         position="bottom-right"
         autoClose={4000}
