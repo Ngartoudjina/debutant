@@ -43,7 +43,7 @@ import {
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import L, { LatLngTuple } from "leaflet";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import {
@@ -56,7 +56,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { API_URL } from "./config.ts";
+import { API_URL } from "../config";
 
 // Fix Leaflet marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -149,7 +149,7 @@ const MapCenterTracker = ({
   position,
   zoom,
 }: {
-  position: [number, number];
+  position: LatLngTuple;
   zoom: number;
 }) => {
   const map = useMap();
@@ -511,7 +511,7 @@ const PackageDetails = ({
       <AnimatePresence>
         {isExpanded && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
+            initial={{ opacityたちは-1.0: opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="mt-3 space-y-3 overflow-hidden"
@@ -761,7 +761,7 @@ const MobileMenu = ({
                   Contacter le support
                 </span>
               </button>
-              <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="pt-4 mtärktp-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                   Besoin d'aide ?
                 </div>
@@ -896,7 +896,7 @@ const Suivi = () => {
   const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatus | null>(
     null
   );
-  const [route, setRoute] = useState<[number, number][]>([]);
+  const [route, setRoute] = useState<LatLngTuple[]>([]);
   const [orderId, setOrderId] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -1029,7 +1029,7 @@ const Suivi = () => {
                 hour: "2-digit",
                 minute: "2-digit",
               }),
-              location: [pickupCoords.lat, pickupCoords.lng],
+              location: [pickupCoords.lat, pickupCoords.lng] as [number, number],
               status: "En route",
             },
           ],
@@ -1100,7 +1100,7 @@ const Suivi = () => {
                 hour: "2-digit",
                 minute: "2-digit",
               }),
-              location: [newLat, newLng],
+              location: [newLat, newLng] as [number, number],
               status: "En progression",
             },
           ].slice(-10),
@@ -1489,7 +1489,7 @@ const Suivi = () => {
                     [
                       deliveryStatus.currentLocation.lat,
                       deliveryStatus.currentLocation.lng,
-                    ] as [number, number]
+                    ] as LatLngTuple
                   }
                   zoom={mapZoom}
                   style={{
@@ -1513,7 +1513,7 @@ const Suivi = () => {
                       [
                         deliveryStatus.currentLocation.lat,
                         deliveryStatus.currentLocation.lng,
-                      ] as [number, number]
+                      ] as LatLngTuple
                     }
                     icon={deliveryIcon}
                   >
@@ -1531,7 +1531,7 @@ const Suivi = () => {
                       [
                         deliveryStatus.destination.lat,
                         deliveryStatus.destination.lng,
-                      ] as [number, number]
+                      ] as LatLngTuple
                     }
                     icon={destinationIcon}
                   >
@@ -1557,7 +1557,7 @@ const Suivi = () => {
                       [
                         deliveryStatus.currentLocation.lat,
                         deliveryStatus.currentLocation.lng,
-                      ] as [number, number]
+                      ] as LatLngTuple
                     }
                     zoom={mapZoom}
                   />
