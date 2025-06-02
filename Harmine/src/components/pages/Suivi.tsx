@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react';
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import {
   Cloud as CloudIcon,
@@ -511,7 +511,7 @@ const PackageDetails = ({
       <AnimatePresence>
         {isExpanded && (
           <motion.div
-            initial={{ opacityたちは-1.0: opacity: 0, height: 0 }}
+            initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="mt-3 space-y-3 overflow-hidden"
@@ -761,7 +761,7 @@ const MobileMenu = ({
                   Contacter le support
                 </span>
               </button>
-              <div className="pt-4 mtärktp-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                   Besoin d'aide ?
                 </div>
@@ -1193,9 +1193,9 @@ const Suivi = () => {
       console.error("Erreur lors de l'envoi du feedback:", error);
       toast.error(error.message || "Erreur lors de l'envoi de l'avis");
     } finally {
-      setIsLoading(false);
-    }
-  };
+    setIsLoading(false);
+  }
+};
 
   const handleModifyAddress = () => {
     toast.info("Redirection vers le formulaire de modification d'adresse...", {
@@ -1206,7 +1206,7 @@ const Suivi = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-950">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -1218,7 +1218,7 @@ const Suivi = () => {
 
   if (!deliveryStatus) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-950">
         <div className="text-center text-gray-700 dark:text-gray-300">
           <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
           <p>
@@ -1227,28 +1227,25 @@ const Suivi = () => {
           <Link
             to="/reserv"
             className="
-    bg-blue-600 
-    hover:bg-blue-700
-    text-white            
-    font-bold             
-    py-3                  
-    px-6                  
-    rounded-full          
-    shadow-lg             
-    hover:shadow-xl       
-    transition-all        
-    duration-300          
-    ease-in-out           
-    transform             
-    hover:scale-105       
-    focus:outline-none    
-    focus:ring-2          
-    focus:ring-blue-500   
-    focus:ring-opacity-50 
-    inline-block          
-    text-center           
-  "
-          >
+              bg-blue-600 hover:bg-blue-700
+              text-white
+              font-semibold
+              py-3 px-6
+              rounded-full
+              shadow-lg
+              hover:shadow-xl
+              transition-all
+              duration-300
+              ease-in-out
+              transform
+              hover:scale-105
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-500
+              focus:ring-opacity-50
+              inline-block
+              text-center
+            >
             Passez une commande
           </Link>
         </div>
@@ -1257,7 +1254,7 @@ const Suivi = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950 transition-colors duration-300 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-950 transition-colors duration-300 relative overflow-hidden">
       <Cloud className="w-96 h-96 -top-48 -left-20 opacity-20" />
       <Cloud className="w-96 h-96 top-1/3 -right-20 opacity-20" />
       <Cloud className="w-64 h-64 bottom-20 left-20 opacity-20" />
@@ -1292,7 +1289,7 @@ const Suivi = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 md:p-8 pb-16"
+        className="max-w-7xl mx-auto space-y-6 p-4 sm:p-6 md:p-8 pb-16"
       >
         <div className="flex justify-between items-center">
           <button
@@ -1441,7 +1438,7 @@ const Suivi = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleModifyAddress}
-              className="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 mt-2"
+              className="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors flex items-center gap-1"
             >
               <Edit className="w-4 h-4" /> Modifier l'adresse
             </motion.button>
@@ -1551,7 +1548,7 @@ const Suivi = () => {
                       weight: 4,
                       dashArray: "8, 8",
                     }}
-                  />
+                    />
                   <MapCenterTracker
                     position={
                       [
@@ -1586,7 +1583,7 @@ const Suivi = () => {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/30 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/50 p-5"
         >
-          <h3 className="text-base font-medium text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+          <h3 className="text-base font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-blue-500" />
             Progression de la livraison
           </h3>
@@ -1599,8 +1596,7 @@ const Suivi = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/30 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/50 p-5"
-        >
+          className="bg-white/30 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/50 p-5">
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="relative">
               {deliveryStatus.courier.profilePicture ? (
@@ -1620,14 +1616,14 @@ const Suivi = () => {
               <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-1">
                 {deliveryStatus.courier.fullName}
               </h3>
-              <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
+              <div className="flex items-center sm: justify-justify-center sm:justify-start gap-2 mb-2">
                 <Star className="w-4 h-4 text-yellow-400 fill-current" />
                 <span className="text-gray-600 dark:text-gray-300">
                   {deliveryStatus.courier.rating.toFixed(1)} (
                   {deliveryStatus.courier.deliveriesCount} livraisons)
                 </span>
               </div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm flex items-center justify-center sm:justify-start gap-1">
+              <p className="text-gray-500 dark:text-gray-400 text-sm flex items-center justify-center sm: justify-justify-center sm: justify-start gap-1">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                 En ligne - Transport: {deliveryStatus.courier.transport}
               </p>
@@ -1661,11 +1657,9 @@ const Suivi = () => {
             whileTap={{ scale: 0.98 }}
             onClick={() => setShowFeedbackForm(true)}
             disabled={isLoading}
-            className={`w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg ${
-              isLoading ? "opacity-70 cursor-not-allowed" : ""
-            }`}
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg ${isLoading ? "opacity-70 cursor-not-allowed" : ""}"
             aria-label="Donner un avis"
-          >
+            >
             {isLoading ? (
               <motion.div
                 animate={{ rotate: 360 }}
