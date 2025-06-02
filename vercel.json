@@ -1,0 +1,25 @@
+{
+  "builds": [
+    {
+      "src": "Harmine/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "Harmine/dist"
+      }
+    },
+    {
+      "src": "server/api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/Harmine/$1"
+    }
+  ]
+}
