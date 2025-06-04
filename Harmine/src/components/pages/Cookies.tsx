@@ -8,11 +8,19 @@ import {
   Mail,
   Phone,
   MapPin,
+  LucideIcon,
 } from "lucide-react";
 import Footer from "./Footer";
 import Navbar from "./Navbar";
 
-const renderSection = (title, content, Icon) => (
+// Define types for renderSection props
+interface RenderSectionProps {
+  title: string;
+  content: React.ReactNode;
+  Icon: LucideIcon;
+}
+
+const renderSection = ({ title, content, Icon }: RenderSectionProps) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
@@ -79,65 +87,71 @@ export default function Cookies() {
         </motion.div>
 
         <section className="space-y-8">
-          {renderSection(
-            "Qu'est-ce qu'un Cookie ?",
-            <p>
-              Un cookie est un petit fichier texte stocké sur votre appareil qui
-              permet de mémoriser des informations et d'améliorer votre
-              expérience utilisateur lors de la navigation sur notre site.
-            </p>,
-            Cookie
-          )}
-
-          {renderSection(
-            "Types de Cookies",
-            <ul className="space-y-2">
-              {[
-                "Cookies essentiels : Nécessaires au bon fonctionnement du site",
-                "Cookies de performance : Analyser et améliorer l'utilisation du site",
-                "Cookies de fonctionnalité : Personnaliser votre expérience",
-                "Cookies publicitaires : Afficher des publicités ciblées",
-              ].map((item, index) => (
-                <li key={index} className="flex items-center space-x-2">
-                  <ShieldCheck className="w-4 h-4 text-blue-400" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>,
-            Globe
-          )}
-
-          {renderSection(
-            "Gestion des Cookies",
-            <div className="space-y-4">
-              <p>Contrôlez vos préférences de cookies via les navigateurs :</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {["Chrome", "Firefox", "Safari", "Edge"].map(
-                  (browser, index) => (
-                    <div
-                      key={index}
-                      className="bg-white/10 rounded-lg p-2 text-center hover:bg-white/20 transition"
-                    >
-                      {browser}
-                    </div>
-                  )
-                )}
-              </div>
-              <p className="text-sm text-gray-400 mt-2">
-                Outils supplémentaires :{" "}
-                <a
-                  href="https://www.youronlinechoices.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline"
-                  aria-label="En savoir plus sur la gestion des cookies avec Your Online Choices"
-                >
-                  Your Online Choices
-                </a>
+          {renderSection({
+            title: "Qu'est-ce qu'un Cookie ?",
+            content: (
+              <p>
+                Un cookie est un petit fichier texte stocké sur votre appareil qui
+                permet de mémoriser des informations et d'améliorer votre
+                expérience utilisateur lors de la navigation sur notre site.
               </p>
-            </div>,
-            Settings
-          )}
+            ),
+            Icon: Cookie,
+          })}
+
+          {renderSection({
+            title: "Types de Cookies",
+            content: (
+              <ul className="space-y-2">
+                {[
+                  "Cookies essentiels : Nécessaires au bon fonctionnement du site",
+                  "Cookies de performance : Analyser et améliorer l'utilisation du site",
+                  "Cookies de fonctionnalité : Personnaliser votre expérience",
+                  "Cookies publicitaires : Afficher des publicités ciblées",
+                ].map((item, index) => (
+                  <li key={index} className="flex items-center space-x-2">
+                    <ShieldCheck className="w-4 h-4 text-blue-400" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            ),
+            Icon: Globe,
+          })}
+
+          {renderSection({
+            title: "Gestion des Cookies",
+            content: (
+              <div className="space-y-4">
+                <p>Contrôlez vos préférences de cookies via les navigateurs :</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {["Chrome", "Firefox", "Safari", "Edge"].map(
+                    (browser, index) => (
+                      <div
+                        key={index}
+                        className="bg-white/10 rounded-lg p-2 text-center hover:bg-white/20 transition"
+                      >
+                        {browser}
+                      </div>
+                    )
+                  )}
+                </div>
+                <p className="text-sm text-gray-400 mt-2">
+                  Outils supplémentaires :{" "}
+                  <a
+                    href="https://www.youronlinechoices.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                    aria-label="En savoir plus sur la gestion des cookies avec Your Online Choices"
+                  >
+                    Your Online Choices
+                  </a>
+                </p>
+              </div>
+            ),
+            Icon: Settings,
+          })}
 
           <ContactSection />
         </section>

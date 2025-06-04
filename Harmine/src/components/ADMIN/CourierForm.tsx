@@ -8,6 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { COVERAGE_ZONES, COURIER_STATUS } from './types';
 
+// Define the Courier interface
+interface Courier {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  experience: string;
+  vehicle: string;
+  coverageZone: string;
+  motivation: string;
+  photo: File | string | null;
+}
+
+// Define the props interface
 interface CourierFormProps {
   courier?: Partial<Courier>;
   onSubmit: (data: Partial<Courier>) => void;
@@ -15,6 +29,7 @@ interface CourierFormProps {
 }
 
 const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing }) => {
+  // Define the initial form data with explicit type
   const [formData, setFormData] = useState<Partial<Courier>>({
     name: courier?.name || '',
     email: courier?.email || '',
@@ -26,11 +41,16 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
     motivation: courier?.motivation || '',
     photo: null,
   });
+
+  // Define the photo preview state
   const [photoPreview, setPhotoPreview] = useState<string | null>(
     typeof courier?.photo === 'string' ? courier.photo : courier?.photo?.secure_url || null
   );
+
+  // Define the errors state with explicit type
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+  // Update form data when courier prop changes
   useEffect(() => {
     if (courier) {
       setFormData({
@@ -50,6 +70,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
     }
   }, [courier]);
 
+  // Form validation function
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!formData.name?.trim()) newErrors.name = 'Le nom est requis';
@@ -65,23 +86,25 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle file input change
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        setErrors((prev) => ({ ...prev, photo: 'Fichier image requis' }));
+        setErrors((prev: { [key: string]: string }) => ({ ...prev, photo: 'Fichier image requis' }));
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        setErrors((prev) => ({ ...prev, photo: 'L\'image doit être inférieure à 5MB' }));
+        setErrors((prev: { [key: string]: string }) => ({ ...prev, photo: 'L\'image doit être inférieure à 5MB' }));
         return;
       }
-      setFormData((prev) => ({ ...prev, photo: file }));
+      setFormData((prev: Partial<Courier>) => ({ ...prev, photo: file }));
       setPhotoPreview(URL.createObjectURL(file));
-      setErrors((prev) => ({ ...prev, photo: '' }));
+      setErrors((prev: { [key: string]: string }) => ({ ...prev, photo: '' }));
     }
   };
 
+  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -117,7 +140,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
               <Input
                 id="name"
                 value={formData.name || ''}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => setFormData((prev: Partial<Courier>) => ({ ...prev, name: e.target.value }))}
                 placeholder="Jean Dupont"
                 required
               />
@@ -129,7 +152,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
                 id="email"
                 type="email"
                 value={formData.email || ''}
-                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => setFormData((prev: Partial<Courier>) => ({ ...prev, email: e.target.value }))}
                 placeholder="jean.dupont@example.com"
                 required
               />
@@ -140,7 +163,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
               <Input
                 id="phone"
                 value={formData.phone || ''}
-                onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                onChange={(e) => setFormData((prev: Partial<Courier>) => ({ ...prev, phone: e.target.value }))}
                 placeholder="+33612345678"
                 required
               />
@@ -151,7 +174,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
               <Input
                 id="address"
                 value={formData.address || ''}
-                onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+                onChange={(e) => setFormData((prev: Partial<Courier>) => ({ ...prev, address: e.target.value }))}
                 placeholder="15 Rue de Paris, 75001"
                 required
               />
@@ -162,7 +185,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
               <Input
                 id="experience"
                 value={formData.experience || ''}
-                onChange={(e) => setFormData((prev) => ({ ...prev, experience: e.target.value }))}
+                onChange={(e) => setFormData((prev: Partial<Courier>) => ({ ...prev, experience: e.target.value }))}
                 placeholder="2 ans"
                 required
               />
@@ -170,7 +193,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehicle">Véhicule *</Label>
-              <Select value={formData.vehicle || ''} onValueChange={(value) => setFormData((prev) => ({ ...prev, vehicle: value }))}>
+              <Select value={formData.vehicle || ''} onValueChange={(value) => setFormData((prev: Partial<Courier>) => ({ ...prev, vehicle: value }))}>
                 <SelectTrigger id="vehicle">
                   <SelectValue placeholder="Sélectionner un véhicule" />
                 </SelectTrigger>
@@ -185,7 +208,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
             </div>
             <div className="space-y-2">
               <Label htmlFor="zone">Zone de couverture *</Label>
-              <Select value={formData.coverageZone || ''} onValueChange={(value) => setFormData((prev) => ({ ...prev, coverageZone: value }))}>
+              <Select value={formData.coverageZone || ''} onValueChange={(value) => setFormData((prev: Partial<Courier>) => ({ ...prev, coverageZone: value }))}>
                 <SelectTrigger id="zone">
                   <SelectValue placeholder="Sélectionner une zone" />
                 </SelectTrigger>
@@ -204,7 +227,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
               <Textarea
                 id="motivation"
                 value={formData.motivation || ''}
-                onChange={(e) => setFormData((prev) => ({ ...prev, motivation: e.target.value }))}
+                onChange={(e) => setFormData((prev: Partial<Courier>) => ({ ...prev, motivation: e.target.value }))}
                 placeholder="Pourquoi souhaitez-vous rejoindre notre équipe ?"
                 rows={4}
                 required

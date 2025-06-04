@@ -32,6 +32,8 @@ import { toast } from "react-toastify";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import CookieConsentBanner from "../cookies/CookieConsentBanner";
+import { collection, query, orderBy, onSnapshot, addDoc, Timestamp } from "firebase/firestore";
+import { db } from "../firebase/firebaseConfig";
 
 // Type definitions
 interface ContactFormData {
@@ -123,16 +125,15 @@ const ContactPage: React.FC = memo(() => {
   const [chatInput, setChatInput] = useState("");
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [language, setLanguage] = useState("fr");
-
   const [darkMode, setDarkMode] = useState(false);
     
-      useEffect(() => {
-        document.documentElement.classList.toggle('dark', darkMode);
-      }, [darkMode]);
-    
-      const toggleDarkMode = () => {
-        setDarkMode((prev) => !prev);
-      };
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
+
+  const toggleDarkMode = () => {
+    setDarkMode((prev) => !prev);
+  };
 
   // Form Validation
   const validateForm = useCallback(() => {
@@ -175,7 +176,7 @@ const ContactPage: React.FC = memo(() => {
         autoClose: 3000,
       });
       setFormData({ name: "", email: "", subject: "", message: "" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'envoi du message:", error);
       const errorMessage = error.response?.data?.error || "Erreur lors de l'envoi du message.";
       toast.error(errorMessage, {
@@ -206,7 +207,7 @@ const ContactPage: React.FC = memo(() => {
         autoClose: 3000,
       });
       setNewsletterEmail("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'inscription :", error);
       const errorMessage = error.response?.data?.error || "Erreur lors de l'inscription à la newsletter.";
       toast.error(errorMessage, {
@@ -339,7 +340,7 @@ const ContactPage: React.FC = memo(() => {
               Contactez Dynamism Express
             </h1>
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-xl mx-auto sm:max-w-2xl">
-              Besoin d’aide ou envie de collaborer ? Notre équipe est là pour vous, 24/7.
+              Besoin d'aide ou envie de collaborer ? Notre équipe est là pour vous, 24/7.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto">
               <a
