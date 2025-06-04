@@ -56,7 +56,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { API_URL } from "../config";
+import { API_URL } from "./config.ts";
 
 // Fix Leaflet marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;

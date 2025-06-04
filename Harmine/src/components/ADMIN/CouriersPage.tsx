@@ -320,6 +320,22 @@ const CouriersPage: React.FC = () => {
     }
   };
 
+  // Helper function to validate if data is complete for adding a new courier
+  const isCompleteForAdd = (data: Partial<Courier>): data is Omit<Courier, 'id'> => {
+    return !!(
+      data.name &&
+      data.email &&
+      data.phone &&
+      data.address &&
+      data.experience &&
+      data.vehicle &&
+      data.coverageZone &&
+      data.motivation &&
+      data.status &&
+      data.photo !== undefined
+    );
+  };
+
   // Filtrer les deux collections séparément
   const filteredAppliedCouriers = appliedCouriers.filter((courier) => {
     const statusMatch = filterStatus === "all" || courier.status === filterStatus;
@@ -396,7 +412,12 @@ const CouriersPage: React.FC = () => {
           if (selectedCourier) {
             handleUpdateCourier(selectedCourier.courier.id, data, selectedCourier.collection);
           } else {
-            handleAddCourier(data, 'coursiers'); // Par défaut, ajouter à 'coursiers'
+            // Validate that all required fields are present for adding a new courier
+            if (isCompleteForAdd(data)) {
+              handleAddCourier(data, 'coursiers'); // Par défaut, ajouter à 'coursiers'
+            } else {
+              toast.error('Veuillez remplir tous les champs obligatoires');
+            }
           }
         }}
         isEditing={!!selectedCourier}

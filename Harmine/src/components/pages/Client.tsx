@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import CookieConsentBanner from "../cookies/CookieConsentBanner";
 import {
   Home,
@@ -8,10 +8,7 @@ import {
   HelpCircle,
   Star,
   MessageCircle,
-  Sun,
-  Moon,
   Settings,
-  Palette,
   X,
   ChevronUp,
   ChevronDown,
@@ -20,15 +17,13 @@ import {
   Plus,
   Clock,
   Menu,
-  AirVent
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import ThemeToggle from './ThemeToggle';
-import toast, { Toaster } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { requestNotificationPermission, onMessageListener } from "../../../firebaseConfig";
 import { useNavigate } from "react-router-dom";
-import { SwipeableList, SwipeableListItem } from "react-swipeable-list";
+import { SwipeableList, SwipeableListItem, TrailingActions, SwipeAction } from "react-swipeable-list";
 import "react-swipeable-list/dist/styles.css";
 
 // Interfaces TypeScript
@@ -89,6 +84,14 @@ interface Courier {
   transport: string;
 }
 
+interface FirebaseMessage {
+  messageId: string;
+  notification: {
+    title: string;
+    body: string;
+  };
+}
+
 // Lazy-load Map components
 const MapContainer = React.lazy(() => import("react-leaflet").then((module) => ({ default: module.MapContainer })));
 const TileLayer = React.lazy(() => import("react-leaflet").then((module) => ({ default: module.TileLayer })));
@@ -108,7 +111,6 @@ const Client: React.FC = () => {
   const [activeSection, setActiveSection] = useState<"dashboard" | "support">("dashboard");
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [isPersonalizationOpen, setIsPersonalizationOpen] = useState<boolean>(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [showCookieBanner, setShowCookieBanner] = useState<boolean>(
@@ -256,7 +258,7 @@ const Client: React.FC = () => {
       await fetchInteractions(token);
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error);
-      setError(error.message);
+      setError((error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -290,7 +292,7 @@ const Client: React.FC = () => {
           if (!response.ok) throw new Error("Erreur lors de l'enregistrement du token FCM");
         }
         onMessageListener()
-          .then((payload) => {
+          .then((payload: FirebaseMessage) => {
             toast.success(payload.notification.body);
             setNotifications((prev) => [
               {
@@ -806,12 +808,11 @@ const Client: React.FC = () => {
                 navigate("/");
               }}
               className="w-full text-left p-2 px-4 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center"
-              aria-label="Se déconnecter"
+              aria-label="Accueil"
             >
-              <AirVent className="w-5 h-5 mr-2" />
-             Acceuil
+              <Home className="w-5 h-5 mr-2" />
+              Accueil
             </button>
-
             <button
               onClick={() => {
                 auth.signOut();
@@ -864,14 +865,15 @@ const Client: React.FC = () => {
               {notifications.map((notif) => (
                 <SwipeableListItem
                   key={notif.id}
-                  swipeRight={{
-                    content: (
-                      <div className="flex items-center justify-center bg-red-500 h-full w-full">
-                        <span className="text-white px-4">Supprimer</span>
-                      </div>
-                    ),
-                    action: () => dismissNotification(notif.id),
-                  }}
+                  trailingActions={
+                    <TrailingActions>
+                      <SwipeAction destructive={true} onClick={() => dismissNotification(notif.id)}>
+                        <div className="flex items-center justify-center bg-red-500 h-full w-20">
+                          <span className="text-white">Supprimer</span>
+                        </div>
+                      </SwipeAction>
+                    </TrailingActions>
+                  }
                 >
                   <div className="bg-gray-100 dark:bg-gray-700 p-3 mb-2 rounded-lg flex justify-between items-center">
                     <div className="flex items-start space-x-2">
@@ -987,7 +989,7 @@ const Client: React.FC = () => {
                 >
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>'
                   />
                   <Marker position={[trackingOrder.pickupAddress.lat, trackingOrder.pickupAddress.lng]}>
                     <Popup>Adresse de prise en charge</Popup>
@@ -1279,25 +1281,23 @@ const Client: React.FC = () => {
 
   if (loading) {
     return (
-          <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900 via-gray-900 to-purple-900 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              {/* Spinner */}
-              <motion.div
-                className="w-16 h-16 border-4 border-t-blue-500 border-r-blue-500 border-b-transparent border-l-transparent rounded-full"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              />
-              {/* Texte clignotant */}
-              <motion.h2
-                className="text-2xl font-semibold text-white"
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              >
-                Chargement
-              </motion.h2>
-            </div>
-          </div>
-        );
+      <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900 via-gray-900 to-purple-900 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <motion.div
+            className="w-16 h-16 border-4 border-t-blue-500 border-r-blue-500 border-b-transparent border-l-transparent rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.h2
+            className="text-2xl font-semibold text-white"
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Chargement
+          </motion.h2>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -1385,7 +1385,9 @@ const Client: React.FC = () => {
         </div>
       </div>
 
-      <CookieConsentBanner />
+      {showCookieBanner && (
+        <CookieConsentBanner onAccept={handleCookieAccept} onLearnMore={handleCookieLearnMore} />
+      )}
     </div>
   );
 };

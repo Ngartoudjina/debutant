@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback, FormEvent, ChangeEvent, memo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  FormEvent,
+  ChangeEvent,
+  memo,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin,
@@ -22,7 +29,7 @@ import {
   Link,
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import ThemeToggle from './ThemeToggle';
+import ThemeToggle from "./ThemeToggle";
 import Slider from "react-slick";
 import "leaflet/dist/leaflet.css";
 import "slick-carousel/slick/slick.css";
@@ -32,7 +39,14 @@ import { toast } from "react-toastify";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import CookieConsentBanner from "../cookies/CookieConsentBanner";
-import { collection, query, orderBy, onSnapshot, addDoc, Timestamp } from "firebase/firestore";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  Timestamp,
+} from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
 // Type definitions
@@ -90,7 +104,10 @@ interface ErrorBoundaryState {
 }
 
 // Error Boundary Component
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   state = { hasError: false };
 
   static getDerivedStateFromError() {
@@ -101,8 +118,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (this.state.hasError) {
       return (
         <div className="text-center py-16">
-          <h2 className="text-2xl font-bold text-red-600 dark:text-red-400">Une erreur s'est produite.</h2>
-          <p className="text-gray-600 dark:text-gray-300">Veuillez recharger la page ou contacter le support.</p>
+          <h2 className="text-2xl font-bold text-red-600 dark:text-red-400">
+            Une erreur s'est produite.
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300">
+            Veuillez recharger la page ou contacter le support.
+          </p>
         </div>
       );
     }
@@ -126,9 +147,9 @@ const ContactPage: React.FC = memo(() => {
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [language, setLanguage] = useState("fr");
   const [darkMode, setDarkMode] = useState(false);
-    
+
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
+    document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
   const toggleDarkMode = () => {
@@ -164,13 +185,16 @@ const ContactPage: React.FC = memo(() => {
     setIsSubmitting(true);
 
     try {
-      const userId = localStorage.getItem('userId') || '';
-      const response = await axios.post("http://localhost:5000/api/contact/submit", {
-        name: formData.name,
-        email: formData.email,
-        message: formData.message,
-        userId,
-      });
+      const userId = localStorage.getItem("userId") || "";
+      const response = await axios.post(
+        "http://localhost:5000/api/contact/submit",
+        {
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+          userId,
+        }
+      );
       toast.success(response.data.message, {
         position: "top-right",
         autoClose: 3000,
@@ -178,7 +202,8 @@ const ContactPage: React.FC = memo(() => {
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (error: any) {
       console.error("Erreur lors de l'envoi du message:", error);
-      const errorMessage = error.response?.data?.error || "Erreur lors de l'envoi du message.";
+      const errorMessage =
+        error.response?.data?.error || "Erreur lors de l'envoi du message.";
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
@@ -199,9 +224,12 @@ const ContactPage: React.FC = memo(() => {
       return;
     }
     try {
-      const response = await axios.post("http://localhost:5000/api/newsletter/subscribe", {
-        email: newsletterEmail,
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/newsletter/subscribe",
+        {
+          email: newsletterEmail,
+        }
+      );
       toast.success(response.data.message, {
         position: "top-right",
         autoClose: 3000,
@@ -209,7 +237,9 @@ const ContactPage: React.FC = memo(() => {
       setNewsletterEmail("");
     } catch (error: any) {
       console.error("Erreur lors de l'inscription :", error);
-      const errorMessage = error.response?.data?.error || "Erreur lors de l'inscription à la newsletter.";
+      const errorMessage =
+        error.response?.data?.error ||
+        "Erreur lors de l'inscription à la newsletter.";
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
@@ -220,7 +250,10 @@ const ContactPage: React.FC = memo(() => {
   // Chat Functionality
   useEffect(() => {
     if (!showChat) return;
-    const q = query(collection(db, "chat_messages"), orderBy("timestamp", "asc"));
+    const q = query(
+      collection(db, "chat_messages"),
+      orderBy("timestamp", "asc")
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const messages = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -235,7 +268,7 @@ const ContactPage: React.FC = memo(() => {
     if (!chatInput.trim()) return;
     try {
       await addDoc(collection(db, "chat_messages"), {
-        userId: localStorage.getItem('userId') || 'anonymous',
+        userId: localStorage.getItem("userId") || "anonymous",
         message: chatInput,
         timestamp: Timestamp.now(),
       });
@@ -273,36 +306,100 @@ const ContactPage: React.FC = memo(() => {
     >
       <div className="flex items-center mb-4 space-x-3">
         <Icon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          {title}
+        </h2>
       </div>
       {content}
     </motion.div>
   );
 
   const socialLinks: SocialLink[] = [
-    { Icon: Facebook, link: "https://www.facebook.com/abel.beingar?locale=fr_FR", label: "Facebook" },
-    { Icon: Instagram, link: "https://instagram.com/dynamismexpress", label: "Instagram" },
-    { Icon: Linkedin, link: "https://linkedin.com/company/dynamismexpress", label: "LinkedIn" },
+    {
+      Icon: Facebook,
+      link: "https://www.facebook.com/abel.beingar?locale=fr_FR",
+      label: "Facebook",
+    },
+    {
+      Icon: Instagram,
+      link: "https://instagram.com/dynamismexpress",
+      label: "Instagram",
+    },
+    {
+      Icon: Linkedin,
+      link: "https://linkedin.com/company/dynamismexpress",
+      label: "LinkedIn",
+    },
   ];
 
   const testimonials: Testimonial[] = [
-    { quote: "Service rapide et fiable ! Ma commande est arrivée en parfait état.", author: "Jean D.", role: "Client", rating: 5 },
-    { quote: "Devenir coursier était simple grâce à leur équipe supportive.", author: "Marie L.", role: "Coursier", rating: 4 },
-    { quote: "Support client exceptionnel, ils ont répondu en quelques minutes !", author: "Paul K.", role: "Client", rating: 5 },
+    {
+      quote:
+        "Service rapide et fiable ! Ma commande est arrivée en parfait état.",
+      author: "Jean D.",
+      role: "Client",
+      rating: 5,
+    },
+    {
+      quote: "Devenir coursier était simple grâce à leur équipe supportive.",
+      author: "Marie L.",
+      role: "Coursier",
+      rating: 4,
+    },
+    {
+      quote:
+        "Support client exceptionnel, ils ont répondu en quelques minutes !",
+      author: "Paul K.",
+      role: "Client",
+      rating: 5,
+    },
   ];
 
   const faqs: FAQ[] = [
-    { question: "Comment suivre ma commande ?", answer: "Connectez-vous à votre compte sur notre site et accédez à l'onglet 'Suivi' pour voir l'état de votre commande en temps réel." },
-    { question: "Comment devenir coursier ?", answer: "Remplissez le formulaire d'inscription dans la section 'Devenir Coursier' et notre équipe vous contactera pour les prochaines étapes." },
-    { question: "Que faire en cas de problème de livraison ?", answer: "Contactez notre support client via le formulaire ou par téléphone au +229 0159334483. Nous résoudrons votre problème rapidement." },
-    { question: "Quels sont les délais de livraison ?", answer: "Les délais varient selon la destination, mais notre service express garantit une livraison en 2 à 4 heures dans Cotonou." },
+    {
+      question: "Comment suivre ma commande ?",
+      answer:
+        "Connectez-vous à votre compte sur notre site et accédez à l'onglet 'Suivi' pour voir l'état de votre commande en temps réel.",
+    },
+    {
+      question: "Comment devenir coursier ?",
+      answer:
+        "Remplissez le formulaire d'inscription dans la section 'Devenir Coursier' et notre équipe vous contactera pour les prochaines étapes.",
+    },
+    {
+      question: "Que faire en cas de problème de livraison ?",
+      answer:
+        "Contactez notre support client via le formulaire ou par téléphone au +229 0159334483. Nous résoudrons votre problème rapidement.",
+    },
+    {
+      question: "Quels sont les délais de livraison ?",
+      answer:
+        "Les délais varient selon la destination, mais notre service express garantit une livraison en 2 à 4 heures dans Cotonou.",
+    },
   ];
 
   const services: Service[] = [
-    { title: "Livraison Rapide", description: "Recevez vos colis en quelques heures avec notre service express.", Icon: Truck },
-    { title: "Sécurité Garantie", description: "Assurance incluse pour protéger vos colis précieux.", Icon: Shield },
-    { title: "Suivi en Temps Réel", description: "Suivez votre commande à chaque étape de la livraison.", Icon: MapPin },
-    { title: "Support 24/7", description: "Notre équipe est disponible à tout moment pour vous aider.", Icon: MessageCircle },
+    {
+      title: "Livraison Rapide",
+      description:
+        "Recevez vos colis en quelques heures avec notre service express.",
+      Icon: Truck,
+    },
+    {
+      title: "Sécurité Garantie",
+      description: "Assurance incluse pour protéger vos colis précieux.",
+      Icon: Shield,
+    },
+    {
+      title: "Suivi en Temps Réel",
+      description: "Suivez votre commande à chaque étape de la livraison.",
+      Icon: MapPin,
+    },
+    {
+      title: "Support 24/7",
+      description: "Notre équipe est disponible à tout moment pour vous aider.",
+      Icon: MessageCircle,
+    },
   ];
 
   const sliderSettings = {
@@ -316,9 +413,18 @@ const ContactPage: React.FC = memo(() => {
     centerMode: true,
     centerPadding: "20px",
     responsive: [
-      { breakpoint: 1024, settings: { slidesToShow: 2, centerPadding: "20px" } },
-      { breakpoint: 768, settings: { slidesToShow: 1, centerMode: true, centerPadding: "10px" } },
-      { breakpoint: 480, settings: { slidesToShow: 1, centerMode: true, centerPadding: "5px" } },
+      {
+        breakpoint: 1024,
+        settings: { slidesToShow: 2, centerPadding: "20px" },
+      },
+      {
+        breakpoint: 768,
+        settings: { slidesToShow: 1, centerMode: true, centerPadding: "10px" },
+      },
+      {
+        breakpoint: 480,
+        settings: { slidesToShow: 1, centerMode: true, centerPadding: "5px" },
+      },
     ],
     lazyLoad: "ondemand" as const,
   };
@@ -340,7 +446,8 @@ const ContactPage: React.FC = memo(() => {
               Contactez Dynamism Express
             </h1>
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-xl mx-auto sm:max-w-2xl">
-              Besoin d'aide ou envie de collaborer ? Notre équipe est là pour vous, 24/7.
+              Besoin d'aide ou envie de collaborer ? Notre équipe est là pour
+              vous, 24/7.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto">
               <a
@@ -352,7 +459,7 @@ const ContactPage: React.FC = memo(() => {
                 Suivre une Commande
               </a>
               <a
-                href="/become-courier"
+                href="/coursier"
                 className="inline-flex items-center px-6 py-3 bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-400 rounded-full hover:bg-blue-50 dark:hover:bg-gray-600 transition-all w-full sm:w-auto justify-center"
                 aria-label="Devenir coursier"
               >
@@ -391,7 +498,10 @@ const ContactPage: React.FC = memo(() => {
             className="mb-12 sm:mb-16 flex flex-col items-center"
             aria-labelledby="services-title"
           >
-            <h2 id="services-title" className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 sm:mb-8 text-center">
+            <h2
+              id="services-title"
+              className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 sm:mb-8 text-center"
+            >
               Pourquoi Choisir Dynamism Express ?
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full justify-items-center">
@@ -425,14 +535,24 @@ const ContactPage: React.FC = memo(() => {
               className="bg-white dark:bg-gray-800/20 rounded-lg p-6 sm:p-8 border border-gray-200 dark:border-gray-700 shadow-lg w-full mx-auto"
               aria-labelledby="contact-form-title"
             >
-              <h2 id="contact-form-title" className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-4 sm:mb-6 flex items-center justify-center">
+              <h2
+                id="contact-form-title"
+                className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-4 sm:mb-6 flex items-center justify-center"
+              >
                 <Send className="mr-2 sm:mr-3 text-blue-600 dark:text-blue-400 w-5 h-5 sm:w-6 sm:h-6" />
                 Envoyez-nous un Message
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4" aria-label="Formulaire de contact">
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4"
+                aria-label="Formulaire de contact"
+              >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+                    >
                       Nom Complet
                     </label>
                     <input
@@ -447,11 +567,16 @@ const ContactPage: React.FC = memo(() => {
                       className="mt-1 w-full px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all text-gray-900 dark:text-gray-100 placeholder-gray-500"
                     />
                     {formErrors.name && (
-                      <p className="text-red-500 dark:text-red-400 text-sm mt-1">{formErrors.name}</p>
+                      <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                        {formErrors.name}
+                      </p>
                     )}
                   </div>
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+                    >
                       Adresse Email
                     </label>
                     <input
@@ -466,12 +591,17 @@ const ContactPage: React.FC = memo(() => {
                       className="mt-1 w-full px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all text-gray-900 dark:text-gray-100 placeholder-gray-500"
                     />
                     {formErrors.email && (
-                      <p className="text-red-500 dark:text-red-400 text-sm mt-1">{formErrors.email}</p>
+                      <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                        {formErrors.email}
+                      </p>
                     )}
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  <label
+                    htmlFor="subject"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+                  >
                     Sujet
                   </label>
                   <select
@@ -486,13 +616,22 @@ const ContactPage: React.FC = memo(() => {
                     <option value="" className="bg-white dark:bg-gray-900">
                       Sélectionner un sujet
                     </option>
-                    <option value="support" className="bg-white dark:bg-gray-900">
+                    <option
+                      value="support"
+                      className="bg-white dark:bg-gray-900"
+                    >
                       Support Client
                     </option>
-                    <option value="livraison" className="bg-white dark:bg-gray-900">
+                    <option
+                      value="livraison"
+                      className="bg-white dark:bg-gray-900"
+                    >
                       Problème de Livraison
                     </option>
-                    <option value="devenir-coursier" className="bg-white dark:bg-gray-900">
+                    <option
+                      value="devenir-coursier"
+                      className="bg-white dark:bg-gray-900"
+                    >
                       Devenir Coursier
                     </option>
                     <option value="autre" className="bg-white dark:bg-gray-900">
@@ -500,11 +639,16 @@ const ContactPage: React.FC = memo(() => {
                     </option>
                   </select>
                   {formErrors.subject && (
-                    <p className="text-red-500 dark:text-red-400 text-sm mt-1">{formErrors.subject}</p>
+                    <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                      {formErrors.subject}
+                    </p>
                   )}
                 </div>
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  <label
+                    htmlFor="message"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+                  >
                     Message
                   </label>
                   <textarea
@@ -519,7 +663,9 @@ const ContactPage: React.FC = memo(() => {
                     className="mt-1 w-full px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all text-gray-900 dark:text-gray-100 placeholder-gray-500"
                   />
                   {formErrors.message && (
-                    <p className="text-red-500 dark:text-red-400 text-sm mt-1">{formErrors.message}</p>
+                    <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                      {formErrors.message}
+                    </p>
                   )}
                 </div>
                 <button
@@ -578,7 +724,10 @@ const ContactPage: React.FC = memo(() => {
                     <motion.div
                       key={index}
                       initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: activeFaq === index ? "auto" : "auto", opacity: 1 }}
+                      animate={{
+                        height: activeFaq === index ? "auto" : "auto",
+                        opacity: 1,
+                      }}
                       className="border-b border-gray-200 dark:border-gray-700"
                     >
                       <button
@@ -592,7 +741,9 @@ const ContactPage: React.FC = memo(() => {
                           <span>{faq.question}</span>
                         </div>
                         <ChevronDown
-                          className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${activeFaq === index ? "rotate-180" : ""}`}
+                          className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${
+                            activeFaq === index ? "rotate-180" : ""
+                          }`}
                         />
                       </button>
                       <AnimatePresence>
@@ -628,7 +779,10 @@ const ContactPage: React.FC = memo(() => {
                       className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition"
                       aria-label={`Suivez-nous sur ${label}`}
                     >
-                      <Icon size={24} className="transition-transform hover:scale-110" />
+                      <Icon
+                        size={24}
+                        className="transition-transform hover:scale-110"
+                      />
                     </a>
                   ))}
                 </div>,
@@ -646,29 +800,44 @@ const ContactPage: React.FC = memo(() => {
             className="my-12 sm:my-16 text-center flex flex-col items-center"
             aria-labelledby="trust-signals-title"
           >
-            <h2 id="trust-signals-title" className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 sm:mb-8">
+            <h2
+              id="trust-signals-title"
+              className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 sm:mb-8"
+            >
               La Confiance de Nos Clients
             </h2>
             <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-6 sm:gap-8 w-full max-w-3xl">
               <div className="flex items-center space-x-3">
                 <Award className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 dark:text-blue-400" />
                 <div>
-                  <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Certifié ISO 9001</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Qualité garantie</p>
+                  <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Certifié ISO 9001
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Qualité garantie
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <Users className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 dark:text-blue-400" />
                 <div>
-                  <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">+10,000 Clients</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Satisfaits</p>
+                  <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    +10,000 Clients
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Satisfaits
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <Star className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 dark:text-blue-400" />
                 <div>
-                  <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">4.8/5 Étoiles</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Sur Trustpilot</p>
+                  <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    4.8/5 Étoiles
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Sur Trustpilot
+                  </p>
                 </div>
               </div>
             </div>
@@ -698,14 +867,19 @@ const ContactPage: React.FC = memo(() => {
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`w-3 h-3 sm:w-4 sm:h-4 ${i < rating ? "text-yellow-400" : "text-gray-300"}`}
+                            className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                              i < rating ? "text-yellow-400" : "text-gray-300"
+                            }`}
                             fill={i < rating ? "currentColor" : "none"}
                           />
                         ))}
                       </div>
-                      <p className="italic text-gray-700 dark:text-gray-200 mb-4 text-sm sm:text-base">"{quote}"</p>
+                      <p className="italic text-gray-700 dark:text-gray-200 mb-4 text-sm sm:text-base">
+                        "{quote}"
+                      </p>
                       <p className="text-right text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                        - {author}, <span className="font-semibold">{role}</span>
+                        - {author},{" "}
+                        <span className="font-semibold">{role}</span>
                       </p>
                     </div>
                   </div>
@@ -722,13 +896,20 @@ const ContactPage: React.FC = memo(() => {
             className="my-12 sm:my-16 bg-blue-600 dark:bg-blue-500 text-white rounded-lg p-6 sm:p-8 text-center flex flex-col items-center"
             aria-labelledby="newsletter-title"
           >
-            <h2 id="newsletter-title" className="text-xl sm:text-2xl font-bold mb-4">
+            <h2
+              id="newsletter-title"
+              className="text-xl sm:text-2xl font-bold mb-4"
+            >
               Restez Informé !
             </h2>
             <p className="text-blue-100 mb-6 text-sm sm:text-base max-w-md">
-              Inscrivez-vous à notre newsletter pour recevoir des mises à jour et des offres exclusives.
+              Inscrivez-vous à notre newsletter pour recevoir des mises à jour
+              et des offres exclusives.
             </p>
-            <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row w-full max-w-md mx-auto gap-2 sm:gap-0">
+            <form
+              onSubmit={handleNewsletterSubmit}
+              className="flex flex-col sm:flex-row w-full max-w-md mx-auto gap-2 sm:gap-0"
+            >
               <input
                 type="email"
                 value={newsletterEmail}
@@ -755,29 +936,52 @@ const ContactPage: React.FC = memo(() => {
             className="my-12 sm:my-16 bg-white dark:bg-gray-800/70 rounded-lg border border-gray-200 dark:border-gray-600 shadow-md overflow-hidden w-full"
             aria-labelledby="map-title"
           >
-            <h2 id="map-title" className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 p-4 sm:p-6 text-center">
+            <h2
+              id="map-title"
+              className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 p-4 sm:p-6 text-center"
+            >
               Où Nous Trouver
             </h2>
             <div className="h-80 sm:h-96 w-full">
-              <MapContainer
-                center={[6.36536, 2.41808]}
-                zoom={15}
-                style={{ height: "100%", width: "100%" }}
-                scrollWheelZoom={false}
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="my-12 sm:my-16 bg-white dark:bg-gray-800/70 rounded-lg border border-gray-200 dark:border-gray-600 shadow-md overflow-hidden w-full"
+                aria-labelledby="map-title"
               >
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
-                <Marker position={[6.36536, 2.41808]}>
-                  <Popup>
-                    <div className="text-center">
-                      <h3 className="font-bold text-gray-900 dark:text-gray-100">Dynamism Express</h3>
-                      <p className="text-gray-700 dark:text-gray-200">Quartier Cadjehoun, Cotonou, Bénin</p>
-                    </div>
-                  </Popup>
-                </Marker>
-              </MapContainer>
+                <h2
+                  id="map-title"
+                  className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 p-4 sm:p-6 text-center"
+                >
+                  Où Nous Trouver
+                </h2>
+                <div className="h-80 sm:h-96 w-full">
+                  <MapContainer
+                    center={[6.36536, 2.41808] as [number, number]}
+                    zoom={15}
+                    style={{ height: "100%", width: "100%" }}
+                    scrollWheelZoom={false}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    <Marker position={[6.36536, 2.41808] as [number, number]}>
+                      <Popup>
+                        <div className="text-center">
+                          <h3 className="font-bold text-gray-900 dark:text-gray-100">
+                            Dynamism Express
+                          </h3>
+                          <p className="text-gray-700 dark:text-gray-200">
+                            Quartier Cadjehoun, Cotonou, Bénin
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  </MapContainer>
+                </div>
+              </motion.section>
             </div>
           </motion.section>
         </div>
@@ -793,7 +997,10 @@ const ContactPage: React.FC = memo(() => {
               role="dialog"
               aria-labelledby="chat-title"
             >
-              <h3 id="chat-title" className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h3
+                id="chat-title"
+                className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4"
+              >
                 Chat en Direct
               </h3>
               <div className="h-40 sm:h-48 overflow-y-auto mb-4 space-y-2">
@@ -844,7 +1051,9 @@ const ContactPage: React.FC = memo(() => {
           transition={{ duration: 0.5 }}
           onClick={() => setShowChat(!showChat)}
           className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 bg-blue-600 dark:bg-blue-500 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          aria-label={showChat ? "Fermer le chat en direct" : "Ouvrir le chat en direct"}
+          aria-label={
+            showChat ? "Fermer le chat en direct" : "Ouvrir le chat en direct"
+          }
         >
           <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
         </motion.button>

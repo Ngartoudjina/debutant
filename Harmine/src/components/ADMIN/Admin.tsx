@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "/logo-dynamism1.png";
-import ThemeToggle from '../pages/ThemeToggle'
+import ThemeToggle from '../pages/ThemeToggle';
 import {
   BarChart3 as ChartBarIcon,
   Users as UsersIcon,
@@ -60,8 +60,6 @@ import {
   query,
   where,
   onSnapshot,
-  doc,
-  updateDoc,
 } from "firebase/firestore";
 import SettingsPage from "./SettingsPage";
 import CouriersPage from "./CouriersPage";
@@ -120,16 +118,6 @@ const Admin = () => {
     document.documentElement.classList.remove("dark");
     setIsDarkMode(false);
   }, []);
-
-  const [darkMode, setDarkMode] = useState(false);
-  
-    useEffect(() => {
-      document.documentElement.classList.toggle('dark', darkMode);
-    }, [darkMode]);
-  
-    const togleDarkMode = () => {
-      setDarkMode((prev) => !prev);
-    };
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -226,13 +214,9 @@ const Admin = () => {
     );
 
     onMessageListener()
-      .then((payload: any) => {
-        if (payload?.notification) {
-          toast.info(`Nouveau message: ${payload.notification.title}`, {
-            position: "top-right",
-            autoClose: 5000,
-          });
-        }
+      .then(() => {
+        // Log to debug; no payload expected based on error
+        console.log("FCM message listener initialized");
       })
       .catch((error) => {
         console.error("Erreur listener FCM:", error);
@@ -248,7 +232,7 @@ const Admin = () => {
         localStorage.getItem("authToken") ||
         (await auth.currentUser?.getIdToken());
       if (!token) throw new Error("Token d'authentification manquant");
-  
+
       const [ordersResponse, couriersResponse, messagesResponse] =
         await Promise.all([
           axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/commandes`, {
@@ -261,9 +245,9 @@ const Admin = () => {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
-  
+
       console.log("Messages response:", messagesResponse.data);
-  
+
       const ordersData = Array.isArray(ordersResponse.data?.data)
         ? ordersResponse.data.data
         : [];
@@ -274,9 +258,9 @@ const Admin = () => {
       const messagesData = Array.isArray(messagesResponse.data?.data)
         ? messagesResponse.data.data
         : [];
-  
-      console.log("Messages data to set:", messagesData); // Log ajouté
-  
+
+      console.log("Messages data to set:", messagesData);
+
       setStats({
         totalOrders: ordersData.length,
         activeCouriers,
@@ -291,10 +275,10 @@ const Admin = () => {
           0
         ),
       });
-  
+
       setOrders(ordersData.slice(0, 3));
       setMessages(messagesData);
-  
+
       const days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
       const counts = days.map((day, index) => ({
         name: day,
@@ -377,27 +361,6 @@ const Admin = () => {
   };
 
   const NotificationsPanel = () => {
-    const formatDateSafely = (dateInput: string): string => {
-      try {
-        const date = new Date(dateInput);
-        if (!isValid(date)) return "Date invalide";
-        return format(date, "dd MMM yyyy, HH:mm", { locale: fr });
-      } catch (error) {
-        return "Erreur date";
-      }
-    };
-
-    const markNotificationAsRead = async (notificationId: string) => {
-      try {
-        const notificationRef = doc(db, "notifications", notificationId);
-        await updateDoc(notificationRef, { read: true });
-        toast.success("Notification marquée comme lue");
-      } catch (error) {
-        console.error("Erreur marquage notification:", error);
-        toast.warn("Impossible de marquer la notification comme lue");
-      }
-    };
-
     return (
       <AnimatePresence>
         {showNotifications && (
@@ -1043,7 +1006,7 @@ const Admin = () => {
                 <div>Page des messages (à implémenter)</div>
               )}
             </main>
-            <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+            <ThemeToggle darkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
           </div>
           {showNotifications && <NotificationsPanel />}
         </>

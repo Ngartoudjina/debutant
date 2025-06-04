@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -9,25 +9,15 @@ import {
   Phone,
   MapPin,
 } from "lucide-react";
+import { LucideProps } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import CookieConsentBanner from "../cookies/CookieConsentBanner";
-import ThemeToggle from './ThemeToggle';
+import ThemeToggle from "./ThemeToggle";
 
 export default function Confidential() {
-
-const [darkMode, setDarkMode] = useState(false);
-  
-    useEffect(() => {
-      document.documentElement.classList.toggle('dark', darkMode);
-    }, [darkMode]);
-  
-    const toggleDarkMode = () => {
-      setDarkMode((prev) => !prev);
-    };
-
   const renderSection = useCallback(
-    (title, content, Icon) => (
+    (title: string, content: React.ReactNode, Icon: React.ComponentType<LucideProps>) => (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -50,7 +40,7 @@ const [darkMode, setDarkMode] = useState(false);
       className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-blue-950 text-gray-200"
     >
       <Navbar />
-      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <ThemeToggle />
 
       <div className="container mx-auto px-6 py-24 max-w-4xl">
         <motion.div
@@ -186,7 +176,6 @@ const [darkMode, setDarkMode] = useState(false);
       </div>
 
       <Footer />
-      {/* Ajoutez le composant CookieConsentBanner ici */}
       <CookieConsentBanner />
     </div>
   );

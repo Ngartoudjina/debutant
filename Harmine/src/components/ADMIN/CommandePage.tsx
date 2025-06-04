@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -29,6 +29,14 @@ import {
 } from 'lucide-react';
 import { getAuth } from 'firebase/auth';
 
+// Types et interfaces
+enum OrderStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED',
+}
+
 interface Order {
   id: string;
   clientName: string;
@@ -44,40 +52,90 @@ interface Courier {
   name: string;
 }
 
-enum OrderStatus {
-  PENDING = 'PENDING',
-  IN_PROGRESS = 'IN_PROGRESS',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
+interface ApiResponse<T> {
+  data: T;
+  error?: string;
 }
 
+interface ApiError {
+  error: string;
+}
+
+// Types pour les réponses de l'API
+interface RawOrderData {
+  id?: string;
+  clientName?: string;
+  address?: string;
+  status?: OrderStatus;
+  date?: string;
+  amount?: number;
+  courierId?: string;
+}
+
+interface RawCourierData {
+  id?: string;
+  name?: string;
+}
+
+type FilterStatus = 'all' | OrderStatus;
+type FilterCourier = 'all' | 'none' | string;
+
 const CommandePage: React.FC = () => {
+  // États avec typage strict
   const [orders, setOrders] = useState<Order[]>([]);
   const [couriers, setCouriers] = useState<Courier[]>([]);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterCourier, setFilterCourier] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [filterCourier, setFilterCourier] = useState<FilterCourier>('all');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [expandedRows, setExpandedRows] = useState<string[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const fetchOrders = async (retryCount = 0) => {
-    const MAX_RETRIES = 2;
+  // Constantes
+  const MAX_RETRIES = 2;
+  const API_BASE_URL = 'http://localhost:5000/api';
+
+  // Fonction utilitaire pour obtenir le token
+  const getAuthToken = (): string | null => {
+    return localStorage.getItem('authToken');
+  };
+
+  // Fonction utilitaire pour les headers d'authentification
+  const getAuthHeaders = (token: string): HeadersInit => ({
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  });
+
+  // Fonction pour gérer les erreurs d'API
+  const handleApiError = async (response: Response): Promise<never> => {
+    let errorData: ApiError;
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = { error: 'Erreur de communication avec le serveur' };
+    }
+    throw new Error(errorData.error || 'Erreur inconnue');
+  };
+
+  // Fonction pour récupérer les commandes avec retry
+  const fetchOrders = useCallback(async (retryCount: number = 0): Promise<void> => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
+      
       if (!token) {
         throw new Error("Aucun token d'authentification trouvé");
       }
-  
-      const response = await fetch('http://localhost:5000/api/commandes', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+
+      const response = await fetch(`${API_BASE_URL}/commandes`, {
+        headers: getAuthHeaders(token),
       });
-  
+
       console.log('Fetch Orders Response Status:', response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ error: 'Erreur de communication' }));
         console.log('Fetch Orders Error Data:', errorData);
+        
+        // Gestion du retry pour les tokens invalides
         if (errorData.error === 'Token invalide' && retryCount < MAX_RETRIES) {
           const auth = getAuth();
           if (auth.currentUser) {
@@ -85,159 +143,212 @@ const CommandePage: React.FC = () => {
             const newToken = await auth.currentUser.getIdToken(true);
             console.log('New Token:', newToken);
             localStorage.setItem('authToken', newToken);
-            return fetchOrders(retryCount + 1); // Réessayer avec le nouveau token
+            return fetchOrders(retryCount + 1);
           } else {
             throw new Error('Utilisateur non connecté');
           }
         }
+        
         throw new Error(errorData.error || 'Erreur lors de la récupération des commandes');
       }
-  
-      const data = await response.json();
+
+      const data: ApiResponse<RawOrderData[]> = await response.json();
       console.log('Raw Orders Data:', data.data);
-      const mappedOrders: Order[] = data.data.map((order: any) => ({
+      
+      const mappedOrders: Order[] = data.data.map((order: RawOrderData): Order => ({
         id: order.id || 'unknown',
         clientName: order.clientName || 'Inconnu',
         address: order.address || 'Inconnue',
         status: order.status || OrderStatus.PENDING,
         date: order.date || new Date().toISOString(),
         amount: order.amount || 0,
-        courierId: order.courierId || undefined,
+        courierId: order.courierId,
       }));
+      
       console.log('Mapped Orders:', mappedOrders);
       setOrders(mappedOrders);
       toast.success('Commandes chargées avec succès');
-    } catch (error: any) {
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du chargement des commandes';
       console.error('Erreur lors du chargement des commandes:', error);
-      toast.error(error.message || 'Erreur lors du chargement des commandes');
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchCouriers = async () => {
+  // Fonction pour récupérer les coursiers
+  const fetchCouriers = useCallback(async (): Promise<void> => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
+      
       if (!token) {
         throw new Error("Aucun token d'authentification trouvé");
       }
 
-      const response = await fetch('http://localhost:5000/api/truecoursiers', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch(`${API_BASE_URL}/truecoursiers`, {
+        headers: getAuthHeaders(token),
       });
 
       console.log('Fetch Couriers Response Status:', response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        console.log('Fetch Couriers Error Data:', errorData);
-        throw new Error(errorData.error || 'Erreur lors de la récupération des coursiers');
+        await handleApiError(response);
       }
 
-      const data = await response.json();
+      const data: ApiResponse<RawCourierData[]> = await response.json();
       console.log('Raw Couriers Data:', data.data);
-      const mappedCouriers: Courier[] = data.data.map((courier: any) => ({
+      
+      const mappedCouriers: Courier[] = data.data.map((courier: RawCourierData): Courier => ({
         id: courier.id || 'unknown',
         name: courier.name || 'Inconnu',
       }));
+      
       console.log('Mapped Couriers:', mappedCouriers);
       setCouriers(mappedCouriers);
-    } catch (error: any) {
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du chargement des coursiers';
       console.error('Erreur lors du chargement des coursiers:', error);
-      toast.error(error.message || 'Erreur lors du chargement des coursiers');
+      toast.error(errorMessage);
     }
-  };
+  }, []);
 
+  // Effet pour charger les données initiales
   useEffect(() => {
     fetchOrders();
     fetchCouriers();
-  }, []);
+  }, [fetchOrders, fetchCouriers]);
 
-  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+  // Fonction pour mettre à jour le statut d'une commande
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus): Promise<void> => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
+      
       if (!token) {
         throw new Error("Aucun token d'authentification trouvé");
       }
 
-      const response = await fetch(`http://localhost:5000/api/commandes/${orderId}`, {
+      const response = await fetch(`${API_BASE_URL}/commandes/${orderId}`, {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(token),
         body: JSON.stringify({ status: newStatus }),
       });
 
       console.log(`Update Order ${orderId} Response Status:`, response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        console.log(`Update Order ${orderId} Error Data:`, errorData);
-        throw new Error(errorData.error || 'Erreur lors de la mise à jour de la commande');
+        await handleApiError(response);
       }
 
-      setOrders((prev) =>
-        prev.map((order) =>
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
           order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
+      
       toast.success(`Commande ${orderId} mise à jour avec succès`);
-    } catch (error: any) {
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour de la commande';
       console.error(`Erreur lors de la mise à jour de la commande ${orderId}:`, error);
-      toast.error(error.message || 'Erreur lors de la mise à jour de la commande');
+      toast.error(errorMessage);
     }
   };
 
-  const cancelOrder = async (orderId: string) => {
+  // Fonction pour annuler une commande
+  const cancelOrder = async (orderId: string): Promise<void> => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
+      
       if (!token) {
         throw new Error("Aucun token d'authentification trouvé");
       }
 
-      const response = await fetch(`http://localhost:5000/api/commandes/${orderId}`, {
+      const response = await fetch(`${API_BASE_URL}/commandes/${orderId}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(token),
       });
 
       console.log(`Cancel Order ${orderId} Response Status:`, response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        console.log(`Cancel Order ${orderId} Error Data:`, errorData);
-        throw new Error(errorData.error || 'Erreur lors de l\'annulation de la commande');
+        await handleApiError(response);
       }
 
-      setOrders((prev) => prev.filter((order) => order.id !== orderId));
+      setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
       toast.success(`Commande ${orderId} annulée avec succès`);
-    } catch (error: any) {
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'annulation de la commande';
       console.error(`Erreur lors de l'annulation de la commande ${orderId}:`, error);
-      toast.error(error.message || 'Erreur lors de l\'annulation de la commande');
+      toast.error(errorMessage);
     }
   };
 
-  const toggleRow = (id: string) => {
-    setExpandedRows((prev) =>
-      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-    );
+  // Fonction pour basculer l'état d'expansion d'une ligne
+  const toggleRow = (id: string): void => {
+    setExpandedRows((prevExpanded) => {
+      const newExpanded = new Set(prevExpanded);
+      if (newExpanded.has(id)) {
+        newExpanded.delete(id);
+      } else {
+        newExpanded.add(id);
+      }
+      return newExpanded;
+    });
   };
 
-  const filteredOrders = orders.filter((order) =>
-    (filterStatus === 'all' || order.status === filterStatus) &&
-    (filterCourier === 'all' || order.courierId === filterCourier)
-  );
+  // Filtrage des commandes
+  const filteredOrders = orders.filter((order) => {
+    const statusMatch = filterStatus === 'all' || order.status === filterStatus;
+    const courierMatch = 
+      filterCourier === 'all' || 
+      (filterCourier === 'none' && !order.courierId) ||
+      order.courierId === filterCourier;
+    
+    return statusMatch && courierMatch;
+  });
 
-  const getCourierName = (courierId?: string) => {
+  // Fonction pour obtenir le nom du coursier
+  const getCourierName = (courierId?: string): string => {
     if (!courierId) return 'Non assigné';
     const courier = couriers.find((c) => c.id === courierId);
-    return courier ? courier.name : 'Inconnu';
+    return courier?.name || 'Inconnu';
+  };
+
+  // Fonction pour obtenir la variante du badge selon le statut
+  const getBadgeVariant = (status: OrderStatus): "default" | "destructive" | "secondary" => {
+    switch (status) {
+      case OrderStatus.DELIVERED:
+        return 'default';
+      case OrderStatus.CANCELLED:
+        return 'destructive';
+      default:
+        return 'secondary';
+    }
+  };
+
+  // Fonction pour déterminer le prochain statut
+  const getNextStatus = (currentStatus: OrderStatus): OrderStatus => {
+    return currentStatus === OrderStatus.PENDING ? OrderStatus.IN_PROGRESS : OrderStatus.DELIVERED;
+  };
+
+  // Fonction pour vérifier si une commande peut être mise à jour
+  const canUpdateOrder = (status: OrderStatus): boolean => {
+    return status !== OrderStatus.DELIVERED && status !== OrderStatus.CANCELLED;
+  };
+
+  // Fonction pour vérifier si une commande peut être annulée
+  const canCancelOrder = (status: OrderStatus): boolean => {
+    return status !== OrderStatus.CANCELLED;
   };
 
   console.log('Filtered Orders:', filteredOrders);
 
-  const renderTable = () => {
+  // Rendu de la table
+  const renderTable = (): JSX.Element => {
     return (
       <>
         {/* Affichage en tableau pour grands écrans */}
@@ -270,15 +381,7 @@ const CommandePage: React.FC = () => {
                     <TableCell>{order.clientName}</TableCell>
                     <TableCell className="hidden lg:table-cell">{order.address}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          order.status === OrderStatus.DELIVERED
-                            ? 'default'
-                            : order.status === OrderStatus.CANCELLED
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                      >
+                      <Badge variant={getBadgeVariant(order.status)}>
                         {order.status}
                       </Badge>
                     </TableCell>
@@ -303,37 +406,29 @@ const CommandePage: React.FC = () => {
                             </TooltipTrigger>
                             <TooltipContent>Voir détails</TooltipContent>
                           </Tooltip>
-                          {order.status !== OrderStatus.DELIVERED &&
-                            order.status !== OrderStatus.CANCELLED && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      updateOrderStatus(
-                                        order.id,
-                                        order.status === OrderStatus.PENDING
-                                          ? OrderStatus.IN_PROGRESS
-                                          : OrderStatus.DELIVERED
-                                      )
-                                    }
-                                    aria-label="Mettre à jour le statut de la commande"
-                                  >
-                                    <Edit size={16} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Mettre à jour statut</TooltipContent>
-                              </Tooltip>
-                            )}
-                          {order.status !== OrderStatus.CANCELLED && (
+                          {canUpdateOrder(order.status) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateOrderStatus(order.id, getNextStatus(order.status))}
+                                  aria-label="Mettre à jour le statut de la commande"
+                                >
+                                  <Edit size={16} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Mettre à jour statut</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {canCancelOrder(order.status) && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => cancelOrder(order.id)}
-                                  className="text-red-600 border-red-600"
+                                  className="text-red-600 border-red-600 hover:bg-red-50"
                                   aria-label="Annuler la commande"
                                 >
                                   <Trash2 size={16} />
@@ -370,13 +465,7 @@ const CommandePage: React.FC = () => {
                   <div className="flex-1">
                     <CardTitle className="text-lg">{order.id}</CardTitle>
                     <Badge
-                      variant={
-                        order.status === OrderStatus.DELIVERED
-                          ? 'default'
-                          : order.status === OrderStatus.CANCELLED
-                          ? 'destructive'
-                          : 'secondary'
-                      }
+                      variant={getBadgeVariant(order.status)}
                       className="mt-1"
                     >
                       {order.status}
@@ -386,12 +475,12 @@ const CommandePage: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => toggleRow(order.id)}
-                    aria-label={expandedRows.includes(order.id) ? 'Réduire' : 'Agrandir'}
+                    aria-label={expandedRows.has(order.id) ? 'Réduire' : 'Agrandir'}
                   >
-                    {expandedRows.includes(order.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    {expandedRows.has(order.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </Button>
                 </CardHeader>
-                {expandedRows.includes(order.id) && (
+                {expandedRows.has(order.id) && (
                   <CardContent className="space-y-2">
                     <div>
                       <strong>Client:</strong> {order.clientName}
@@ -426,37 +515,29 @@ const CommandePage: React.FC = () => {
                           </TooltipTrigger>
                           <TooltipContent>Voir détails</TooltipContent>
                         </Tooltip>
-                        {order.status !== OrderStatus.DELIVERED &&
-                          order.status !== OrderStatus.CANCELLED && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    updateOrderStatus(
-                                      order.id,
-                                      order.status === OrderStatus.PENDING
-                                        ? OrderStatus.IN_PROGRESS
-                                        : OrderStatus.DELIVERED
-                                    )
-                                  }
-                                  aria-label="Mettre à jour le statut de la commande"
-                                >
-                                  <Edit size={16} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Mettre à jour statut</TooltipContent>
-                            </Tooltip>
-                          )}
-                        {order.status !== OrderStatus.CANCELLED && (
+                        {canUpdateOrder(order.status) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateOrderStatus(order.id, getNextStatus(order.status))}
+                                aria-label="Mettre à jour le statut de la commande"
+                              >
+                                <Edit size={16} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Mettre à jour statut</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {canCancelOrder(order.status) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => cancelOrder(order.id)}
-                                className="text-red-600 border-red-600"
+                                className="text-red-600 border-red-600 hover:bg-red-50"
                                 aria-label="Annuler la commande"
                               >
                                 <Trash2 size={16} />
@@ -488,7 +569,7 @@ const CommandePage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchOrders}
+            onClick={() => fetchOrders()}
             disabled={isLoading}
             className="flex items-center gap-1 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"
           >
@@ -500,7 +581,7 @@ const CommandePage: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="space-y-2 w-full sm:w-1/3">
               <Label className="text-gray-900 dark:text-white">Filtrer par statut</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <Select value={filterStatus} onValueChange={(value: FilterStatus) => setFilterStatus(value)}>
                 <SelectTrigger className="border-gray-300 dark:border-gray-600">
                   <SelectValue placeholder="Filtrer par statut" />
                 </SelectTrigger>
@@ -515,7 +596,7 @@ const CommandePage: React.FC = () => {
             </div>
             <div className="space-y-2 w-full sm:w-1/3">
               <Label className="text-gray-900 dark:text-white">Filtrer par coursier</Label>
-              <Select value={filterCourier} onValueChange={setFilterCourier}>
+              <Select value={filterCourier} onValueChange={(value: FilterCourier) => setFilterCourier(value)}>
                 <SelectTrigger className="border-gray-300 dark:border-gray-600">
                   <SelectValue placeholder="Filtrer par coursier" />
                 </SelectTrigger>

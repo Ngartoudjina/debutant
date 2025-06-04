@@ -6,19 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { COVERAGE_ZONES, COURIER_STATUS } from './types';
+import { COVERAGE_ZONES, Courier } from './types'; // Importer Courier depuis types.ts
 
-// Define the Courier interface
-interface Courier {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  experience: string;
-  vehicle: string;
-  coverageZone: string;
-  motivation: string;
-  photo: File | string | null;
+// Define the photo object interface for uploaded photos
+interface PhotoObject {
+  secure_url: string;
 }
 
 // Define the props interface
@@ -42,9 +34,18 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
     photo: null,
   });
 
+  // Helper function to get photo URL
+  const getPhotoUrl = (photo: File | PhotoObject | string | null | undefined): string | null => {
+    if (!photo) return null;
+    if (typeof photo === 'string') return photo;
+    if (photo instanceof File) return URL.createObjectURL(photo);
+    if (typeof photo === 'object' && 'secure_url' in photo) return photo.secure_url;
+    return null;
+  };
+
   // Define the photo preview state
   const [photoPreview, setPhotoPreview] = useState<string | null>(
-    typeof courier?.photo === 'string' ? courier.photo : courier?.photo?.secure_url || null
+    getPhotoUrl(courier?.photo)
   );
 
   // Define the errors state with explicit type
@@ -64,9 +65,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
         motivation: courier.motivation || '',
         photo: null,
       });
-      setPhotoPreview(
-        typeof courier.photo === 'string' ? courier.photo : courier.photo?.secure_url || null
-      );
+      setPhotoPreview(getPhotoUrl(courier.photo));
     }
   }, [courier]);
 
