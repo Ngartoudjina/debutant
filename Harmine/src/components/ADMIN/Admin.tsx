@@ -137,7 +137,7 @@ const Admin = () => {
             user.displayName ||
             "Administrateur";
           setUserName(displayName);
-          await requestNotificationPermission(user.uid);
+          await requestNotificationPermission();
         } catch (error) {
           console.error("Erreur récupération utilisateur:", error);
           setUserName(user.displayName || "Administrateur");
