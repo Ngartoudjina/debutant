@@ -52,7 +52,6 @@ import {
   auth,
   db,
   requestNotificationPermission,
-  onMessageListener,
 } from "../../../firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, query, where, onSnapshot } from "firebase/firestore";

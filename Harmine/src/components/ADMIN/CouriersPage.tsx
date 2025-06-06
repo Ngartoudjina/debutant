@@ -9,7 +9,6 @@ import { useCouriers } from './hooks/useCouriers';
 import { ChatMessage, Courier, COURIER_STATUS, COVERAGE_ZONES } from './types';
 import { CourierTable } from './CourierTable';
 import CourierForm from './CourierForm';
-import { ErrorBoundary } from './ErrorBoundary'; // Importez ErrorBoundary
 import { getAuth } from 'firebase/auth';
 import { RefreshCw, Send, AlertCircle } from 'lucide-react';
 
