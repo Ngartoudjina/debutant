@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "/logo-dynamism1.png";
-import ThemeToggle from '../pages/ThemeToggle';
+import ThemeToggle from "../pages/ThemeToggle";
 import {
   BarChart3 as ChartBarIcon,
   Users as UsersIcon,
@@ -55,12 +55,7 @@ import {
   onMessageListener,
 } from "../../../firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-} from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import SettingsPage from "./SettingsPage";
 import CouriersPage from "./CouriersPage";
 import CommandePage from "./CommandePage";
@@ -212,15 +207,6 @@ const Admin = () => {
         toast.error("Erreur lors du chargement des notifications");
       }
     );
-
-    onMessageListener()
-      .then(() => {
-        // Log to debug; no payload expected based on error
-        console.log("FCM message listener initialized");
-      })
-      .catch((error) => {
-        console.error("Erreur listener FCM:", error);
-      });
 
     return () => unsubscribe();
   }, [userId]);
@@ -1006,7 +992,10 @@ const Admin = () => {
                 <div>Page des messages (à implémenter)</div>
               )}
             </main>
-            <ThemeToggle darkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+            <ThemeToggle
+              darkMode={isDarkMode}
+              toggleDarkMode={toggleDarkMode}
+            />
           </div>
           {showNotifications && <NotificationsPanel />}
         </>

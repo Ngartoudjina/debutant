@@ -349,9 +349,6 @@ const CouriersPage: React.FC = () => {
     return statusMatch && zoneMatch;
   });
 
-  console.log('Filtered Applied Couriers:', filteredAppliedCouriers);
-  console.log('Filtered Registered Couriers:', filteredRegisteredCouriers);
-
   return (
     <div className="p-6 space-y-8">
       <Card>
@@ -392,7 +389,7 @@ const CouriersPage: React.FC = () => {
             </div>
           </div>
 
-          <ErrorBoundary>
+
             <CourierTable
               appliedCouriers={filteredAppliedCouriers}
               registeredCouriers={filteredRegisteredCouriers}
@@ -402,7 +399,7 @@ const CouriersPage: React.FC = () => {
               onRefresh={loadCouriers}
               isLoading={loading}
             />
-          </ErrorBoundary>
+ 
         </CardContent>
       </Card>
 
