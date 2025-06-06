@@ -1,53 +1,19 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  FormEvent,
-  ChangeEvent,
-  memo,
-} from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  MapPin,
-  Phone,
-  Mail,
-  Send,
-  Facebook,
-  Instagram,
-  Linkedin,
-  HelpCircle,
-  Users,
-  Star,
-  Clock,
-  Package,
-  Truck,
-  Shield,
-  MessageCircle,
-  ChevronDown,
-  Globe,
-  Award,
-  Link,
-} from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import ThemeToggle from "./ThemeToggle";
-import Slider from "react-slick";
-import "leaflet/dist/leaflet.css";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import axios from "axios";
-import { toast } from "react-toastify";
-import Navbar from "./Navbar";
-import Footer from "./Footer";
-import CookieConsentBanner from "../cookies/CookieConsentBanner";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  Timestamp,
-} from "firebase/firestore";
-import { db } from "../firebase/firebaseConfig";
+import React, { useState, useEffect, useCallback, FormEvent, ChangeEvent, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MapPin, Phone, Mail, Send, Facebook, Instagram, Linkedin, HelpCircle, Users, Star, Clock, Truck, Shield, MessageCircle, ChevronDown, Globe, Award, Link, LucideIcon } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import ThemeToggle from './ThemeToggle';
+import Slider from 'react-slick';
+import 'leaflet/dist/leaflet.css';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import Navbar from './Navbar';
+import Footer from './Footer';
+import CookieConsentBanner from '../cookies/CookieConsentBanner';
+import { collection, query, orderBy, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../../../firebaseConfig.ts';
 
 // Type definitions
 interface ContactFormData {
@@ -65,7 +31,7 @@ interface FormErrors {
 }
 
 interface SocialLink {
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  Icon: LucideIcon; // Use LucideIcon for lucide-react components
   link: string;
   label: string;
 }
@@ -85,7 +51,7 @@ interface FAQ {
 interface Service {
   title: string;
   description: string;
-  Icon: React.ComponentType<{ className?: string }>;
+  Icon: LucideIcon; // Updated to LucideIcon for consistency
 }
 
 interface ChatMessage {
@@ -104,10 +70,7 @@ interface ErrorBoundaryState {
 }
 
 // Error Boundary Component
-class ErrorBoundary extends React.Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state = { hasError: false };
 
   static getDerivedStateFromError() {
@@ -295,7 +258,7 @@ const ContactPage: React.FC = memo(() => {
   const renderSection = (
     title: string,
     content: React.ReactNode,
-    Icon: React.ComponentType<{ className?: string }>,
+    Icon: LucideIcon,
     index: number
   ) => (
     <motion.div
@@ -616,22 +579,13 @@ const ContactPage: React.FC = memo(() => {
                     <option value="" className="bg-white dark:bg-gray-900">
                       Sélectionner un sujet
                     </option>
-                    <option
-                      value="support"
-                      className="bg-white dark:bg-gray-900"
-                    >
+                    <option value="support" className="bg-white dark:bg-gray-900">
                       Support Client
                     </option>
-                    <option
-                      value="livraison"
-                      className="bg-white dark:bg-gray-900"
-                    >
+                    <option value="livraison" className="bg-white dark:bg-gray-900">
                       Problème de Livraison
                     </option>
-                    <option
-                      value="devenir-coursier"
-                      className="bg-white dark:bg-gray-900"
-                    >
+                    <option value="devenir-coursier" className="bg-white dark:bg-gray-900">
                       Devenir Coursier
                     </option>
                     <option value="autre" className="bg-white dark:bg-gray-900">
@@ -943,45 +897,29 @@ const ContactPage: React.FC = memo(() => {
               Où Nous Trouver
             </h2>
             <div className="h-80 sm:h-96 w-full">
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="my-12 sm:my-16 bg-white dark:bg-gray-800/70 rounded-lg border border-gray-200 dark:border-gray-600 shadow-md overflow-hidden w-full"
-                aria-labelledby="map-title"
+              <MapContainer
+                center={[6.36536, 2.41808] as [number, number]}
+                zoom={15}
+                style={{ height: "100%", width: "100%" }}
+                scrollWheelZoom={false}
               >
-                <h2
-                  id="map-title"
-                  className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 p-4 sm:p-6 text-center"
-                >
-                  Où Nous Trouver
-                </h2>
-                <div className="h-80 sm:h-96 w-full">
-                  <MapContainer
-                    center={[6.36536, 2.41808] as [number, number]}
-                    zoom={15}
-                    style={{ height: "100%", width: "100%" }}
-                    scrollWheelZoom={false}
-                  >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    />
-                    <Marker position={[6.36536, 2.41808] as [number, number]}>
-                      <Popup>
-                        <div className="text-center">
-                          <h3 className="font-bold text-gray-900 dark:text-gray-100">
-                            Dynamism Express
-                          </h3>
-                          <p className="text-gray-700 dark:text-gray-200">
-                            Quartier Cadjehoun, Cotonou, Bénin
-                          </p>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  </MapContainer>
-                </div>
-              </motion.section>
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                <Marker position={[6.36536, 2.41808] as [number, number]}>
+                  <Popup>
+                    <div className="text-center">
+                      <h3 className="font-bold text-gray-900 dark:text-gray-100">
+                        Dynamism Express
+                      </h3>
+                      <p className="text-gray-700 dark:text-gray-200">
+                        Quartier Cadjehoun, Cotonou, Bénin
+                      </p>
+                    </div>
+                  </Popup>
+                </Marker>
+              </MapContainer>
             </div>
           </motion.section>
         </div>

@@ -3,14 +3,14 @@ import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Package, Clock, Truck, CreditCard, Calendar, AlertCircle, MapPin, Info, Moon, Sun, Scale, User } from 'lucide-react';
+import { Package, Clock, Truck, CreditCard, Calendar, AlertCircle, MapPin, Scale, User } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import { db } from '../../../firebaseConfig';
+import { db } from './firebaseConfig'; // Adjusted path based on context
 import { doc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -44,7 +44,9 @@ interface Courier {
 }
 
 interface CourierResponse {
-  data: Courier[];
+  data?: Courier[];
+  error?: string;
+  message?: string; // Added to handle potential API response variations
 }
 
 // Configuration des marqueurs Leaflet
@@ -69,7 +71,7 @@ const MapBounds = ({ markers }: { markers: [number, number][] }) => {
   return null;
 };
 
-const Reserv = () => {
+const Reserv: React.FC = () => {
   const [formData, setFormData] = useState<DeliveryFormData>({
     pickupAddress: '',
     deliveryAddress: '',
@@ -86,22 +88,12 @@ const Reserv = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [markers, setMarkers] = useState<[number, number][]>([]);
   const [estimatedTime, setEstimatedTime] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const [pricePerKg, setPricePerKg] = useState(0);
   const [distance, setDistance] = useState(0);
   const [couriers, setCouriers] = useState<Courier[]>([]);
   const [selectedCourierId, setSelectedCourierId] = useState<string | null>(null);
   const navigate = useNavigate();
-
-  const [darkMode, setDarkMode] = useState(false);
-  
-    useEffect(() => {
-      document.documentElement.classList.toggle('dark', darkMode);
-    }, [darkMode]);
-  
-    const togleDarkMode = () => {
-      setDarkMode((prev) => !prev);
-    };
 
   // Log costEstimate updates
   useEffect(() => {
@@ -122,7 +114,7 @@ const Reserv = () => {
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
-      setIsDarkMode(true);
+      setDarkMode(true);
       document.documentElement.classList.add('dark');
     }
   }, []);
@@ -170,16 +162,18 @@ const Reserv = () => {
           throw new Error(result.error || 'Erreur lors de la récupération des coursiers');
         }
         console.log('Couriers fetched:', result.data);
-        setCouriers(result.data);
-        if (result.data.length > 0) {
+        if (result.data?.length) {
+          setCouriers(result.data);
           setSelectedCourierId(result.data[0].id);
           console.log('Selected courier ID:', result.data[0].id);
         } else {
           console.warn('No couriers available');
+          setCouriers([]);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Erreur lors de la récupération des coursiers:', error);
-        toast.error(error.message || 'Impossible de charger les coursiers disponibles');
+        const errorMessage = error instanceof Error ? error.message : 'Impossible de charger les coursiers disponibles';
+        toast.error(errorMessage);
       }
     };
     fetchCouriers();
@@ -187,9 +181,12 @@ const Reserv = () => {
 
   // Toggle dark mode
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', !isDarkMode ? 'dark' : 'light');
+    setDarkMode((prev) => {
+      const newDarkMode = !prev;
+      document.documentElement.classList.toggle('dark', newDarkMode);
+      localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
+      return newDarkMode;
+    });
   };
 
   // Geocode addresses using Nominatim
@@ -211,6 +208,7 @@ const Reserv = () => {
         throw new Error('Adresse de prise en charge non trouvée');
       }
 
+      // Delay to respect Nominatim's rate limit
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const deliveryResponse = await fetch(
@@ -238,9 +236,10 @@ const Reserv = () => {
       const calculatedDistance = calculateDistance(pickupCoords, deliveryCoords);
       setDistance(calculatedDistance);
       calculateCost(calculatedDistance, pickupCoords, deliveryCoords);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erreur lors de la géocodification:', error);
-      toast.error(error.message || 'Impossible de localiser les adresses. Veuillez vérifier les adresses saisies.');
+      const errorMessage = error instanceof Error ? error.message : 'Impossible de localiser les adresses. Veuillez vérifier les adresses saisies.';
+      toast.error(errorMessage);
       setPickupCoords(null);
       setDeliveryCoords(null);
       setMarkers([]);
@@ -272,7 +271,7 @@ const Reserv = () => {
     const weights = {
       small: 2,
       medium: 5,
-      large: 10,
+      large: 10, // Corrected typo here
     };
     setFormData(prev => ({ ...prev, weight: weights[formData.packageType] }));
   }, [formData.packageType]);
@@ -280,35 +279,39 @@ const Reserv = () => {
   // Calculate cost based on weight, distance, and admin-defined price
   const calculateCost = (calculatedDistance: number, pickup: Coordinates, delivery: Coordinates) => {
     console.log('Calculating cost with:', {
-      pickup,
-      delivery,
-      distance: calculatedDistance,
-      weight: formData.weight,
-      urgency: formData.urgency,
+      pickup,       ,
+      delivery,     :,
+      distance, calculatedDistance,
+      weight,      : formData.weight,
+      urgency,     : distanceformData.urgency,,
+      insurance,   : formData,,
       insurance: formData.insurance,
-      pricePerKg,
+      distance: pricePerKg,
     });
 
-    if (!pickup || !delivery) {
-      console.warn('Coordonnées manquantes:', { pickup, delivery });
-      toast.warning('Veuillez vérifier les adresses pour calculer le coût');
+    if (!pickup || !deliveryCoords) {
+      console.warn('Invalid:', 'Coordonnées manquantes:', { pickup:, delivery: deliveryCoords } );
+      toast.warning('Invalid delivery coordinates. Please verify to pour calculer le cost.');
+      return;
       return;
     }
 
     if (formData.weight <= 0) {
-      console.warn('Poids invalide:', formData.weight);
-      toast.warning('Veuillez spécifier un poids valide');
+      console.warn('Invalid poids:', { weight: formData.weight});
+      toast.warning('Please specify a valid weight.');
       return;
     }
 
     const urgencyMultiplier = {
       standard: 1,
       express: 1.5,
-      urgent: 2,
-    }[formData.urgency];
+      urgent: 2
+      urgency: [formData.urgency],
+      transition: {
+    }[duration];
 
     const insuranceCost = formData.insurance ? 5 : 0;
-    const weightCost = formData.weight * pricePerKg;
+    const weightCost := insurance formData.weight * pricePerKg;
     const distanceCost = calculatedDistance * 0.5;
 
     const total = (weightCost + distanceCost) * urgencyMultiplier + insuranceCost;
@@ -375,7 +378,7 @@ const Reserv = () => {
         deliveryAddress: {
           address: formData.deliveryAddress,
           lat: deliveryCoords.lat,
-          lng: deliveryCoords.lng,
+          lng: deliveryCoords,
         },
         packageType: formData.packageType,
         weight: formData.weight,
@@ -390,15 +393,15 @@ const Reserv = () => {
         courierId: selectedCourierId,
       };
 
-      console.log('Sending order data:', orderData);
+      console.log('Sending order data:', { orderData });
 
       const response = await fetch('http://localhost:5000/api/commandes/create', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type: application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(orderData),
+        body: JSON.stringify(orderData)
       });
 
       const result = await response.json();
@@ -417,7 +420,7 @@ const Reserv = () => {
       toast.success('Réservation confirmée avec succès !');
       navigate('/suivi', { state: { orderId } });
 
-      // Réinitialiser le formulaire
+      // Reset form
       setFormData({
         pickupAddress: '',
         deliveryAddress: '',
@@ -434,7 +437,7 @@ const Reserv = () => {
       setEstimatedTime('');
       setMarkers([]);
       setDistance(0);
-      setSelectedCourierId(couriers.length > 0 ? couriers[0].id : null);
+      setSelectedCourierId(couriers?.length > 0 ? couriers[0].id : null);
     } catch (error: any) {
       console.error('Erreur lors de la réservation:', error);
       toast.error(error.message || 'Erreur lors de la réservation');
@@ -445,31 +448,17 @@ const Reserv = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:via-gray-900 dark:to-blue-900">
-      <Navbar />
-      <ThemeToggle darkMode={darkMode} toggleDarkMode={togleDarkMode} />
-      <ToastContainer position="top-right" autoClose={5000} theme={isDarkMode ? 'dark' : 'light'} />
+    <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-900 dark:to-blue-950">
+      <Navbar darkMode={darkMode} />
+      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <ToastContainer position="top-right" autoClose={5000} theme={darkMode ? 'dark' : 'light'} />
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 relative"
       >
-        <div className="flex justify-end mb-4">
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            aria-label="Toggle dark mode"
-          >
-            {isDarkMode ? (
-              <Sun className="w-6 h-6 text-yellow-400" />
-            ) : (
-              <Moon className="w-6 h-6 text-gray-600 dark:text-gray-100" />
-            )}
-          </button>
-        </div>
-
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-300 dark:to-purple-500">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-500">
             Réserver un coursier
           </h1>
           <p className="text-gray-600 dark:text-gray-300">Service de livraison express disponible 24/7 au Bénin</p>
@@ -491,10 +480,10 @@ const Reserv = () => {
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
                     <input
                       type="text"
-                      value={formData.pickupAddress}
-                      onChange={(e) => setFormData(prev => ({ ...prev, pickupAddress: e.target.value }))}
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
-                      placeholder="Ex: Rue 12.179, Cotonou, Bénin"
+                      value={formData[0].pickupAddress}
+                      onChange={(e) => setFormData(prev => ({ ...prev, pickupAddress: formData.e.target.value }))}
+                      className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
+                      placeholder="Ex: Rue 12.123,456, Cotonou, Bénin"
                       required
                     />
                   </div>
@@ -508,12 +497,12 @@ const Reserv = () => {
                     Adresse de livraison
                   </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y/2 text-gray-500 dark:text-gray-300" size={20} />
                     <input
                       type="text"
-                      value={formData.deliveryAddress}
+                      value={formData[1].deliveryAddress}
                       onChange={(e) => setFormData(prev => ({ ...prev, deliveryAddress: e.target.value }))}
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
+                      className="w-full pl-10 pr-3 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
                       placeholder="Ex: Avenue Steinmetz, Porto-Novo, Bénin"
                       required
                     />
@@ -576,240 +565,244 @@ const Reserv = () => {
                       <option value="standard">Standard</option>
                       <option value="express">Express</option>
                       <option value="urgent">Urgent</option>
-                    </select>
+                      </select>
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                    Date et heure de prise en charge
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
-                    <DatePicker
-                      selected={formData.scheduledDate}
-                      onChange={(date: Date) => setFormData(prev => ({ ...prev, scheduledDate: date }))}
-                      showTimeSelect
-                      dateFormat="Pp"
-                      minDate={new Date()}
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                      Date et heure de prise en charge
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
+                      <DatePicker
+                        selected={formData.scheduledDate}
+                        onChange={(date: Date | null) => {
+                          if (date) {
+                            setFormData(prev => ({ ...prev, scheduledDate: date }));
+                          }
+                        }}
+                        showTimeSelect
+                        dateFormat="Pp"
+                        minDate={new Date()}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                      Instructions spéciales
+                    </label>
+                    <textarea
+                      value={formData.specialInstructions}
+                      onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
+                      className="w-full p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
+                      rows={3}
+                      placeholder="Instructions particulières pour le coursier..."
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                    Instructions spéciales
-                  </label>
-                  <textarea
-                    value={formData.specialInstructions}
-                    onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
-                    className="w-full p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
-                    rows={3}
-                    placeholder="Instructions particulières pour le coursier..."
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="insurance"
-                    checked={formData.insurance}
-                    onChange={(e) => setFormData(prev => ({ ...prev, insurance: e.target.checked }))}
-                    className="w-4 h-4 bg-gray-50 dark:bg-gray-700/50 border-gray-300 dark:border-gray-600 rounded text-blue-500 dark:text-blue-400 focus:ring-blue-400 dark:focus:ring-blue-300"
-                  />
-                  <label htmlFor="insurance" className="text-sm text-gray-600 dark:text-gray-300">
-                    Ajouter une assurance (+5€)
-                  </label>
-                </div>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={debouncedGeocodeAddresses}
-                className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white p-3 rounded-lg transition flex items-center justify-center space-x-2"
-                aria-label="Calculer le coût"
-              >
-                <CreditCard size={20} />
-                <span>Calculer le coût</span>
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={isLoading || couriers.length === 0}
-                className={`w-full ${
-                  isLoading || couriers.length === 0
-                    ? 'bg-blue-700 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
-                } text-white p-3 rounded-lg transition flex items-center justify-center space-x-2`}
-                aria-label="Réserver un coursier"
-                aria-disabled={isLoading || couriers.length === 0}
-              >
-                {isLoading ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                    aria-label="Chargement"
-                  />
-                ) : (
-                  <>
-                    <Truck size={20} />
-                    <span>Réserver maintenant</span>
-                  </>
-                )}
-              </motion.button>
-            </form>
-          </motion.div>
-
-          <div className="space-y-8">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
-            >
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Carte de livraison</h2>
-              <div className="h-[400px] rounded-lg overflow-hidden">
-                <MapContainer center={[6.3572, 2.4398]} zoom={13} style={{ height: '100%', width: '100%' }}>
-                  <TileLayer
-                    url={
-                      isDarkMode
-                        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-                    }
-                  />
-                  {markers.map((position, index) => (
-                    <Marker key={index} position={position}>
-                      <Popup>{index === 0 ? 'Point de départ' : "Point d'arrivée"}</Popup>
-                    </Marker>
-                  ))}
-                  <MapBounds markers={markers} />
-                </MapContainer>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
-            >
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <AlertCircle className="mr-2" size={20} />
-                Informations importantes
-              </h2>
-              <div className="space-y-4 text-gray-600 dark:text-gray-300">
-                <div className="flex items-start space-x-2">
-                  <Info size={16} className="mt-1 flex-shrink-0" />
-                  <p>Les délais de livraison peuvent varier en fonction du trafic et des conditions météorologiques.</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Info size={16} className="mt-1 flex-shrink-0" />
-                  <p>L'assurance couvre la perte ou les dommages jusqu'à 500€ de valeur déclarée.</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Info size={16} className="mt-1 flex-shrink-0" />
-                  <p>Nos coursiers sont équipés de systèmes de géolocalisation en temps réel pour un suivi précis.</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Info size={16} className="mt-1 flex-shrink-0" />
-                  <p>En cas d'urgence ou de modification de la livraison, contactez notre service client 24/7.</p>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
-            >
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Choisir un coursier</h2>
-              {couriers.length === 0 ? (
-                <p className="text-gray-600 dark:text-gray-300">
-                  Aucun coursier disponible pour le moment.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {couriers.map(courier => (
-                    <label
-                      key={courier.id}
-                      className={`flex items-center space-x-4 p-4 rounded-lg border ${
-                        selectedCourierId === courier.id
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50'
-                          : 'border-gray-200 dark:border-gray-700'
-                      } cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition`}
-                    >
-                      <input
-                        type="radio"
-                        name="courier"
-                        value={courier.id}
-                        checked={selectedCourierId === courier.id}
-                        onChange={() => setSelectedCourierId(courier.id)}
-                        className="w-4 h-4 text-blue-500 focus:ring-blue-400 dark:focus:ring-blue-300"
-                      />
-                      <div className="flex items-center space-x-4 flex-1">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 flex items-center justify-center overflow-hidden">
-                          {courier.profilePicture ? (
-                            <img src={courier.profilePicture} alt={courier.fullName} className="w-full h-full object-cover" />
-                          ) : (
-                            <User size={24} className="text-white" />
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{courier.fullName}</h3>
-                          <div className="flex items-center space-x-1 text-yellow-400 dark:text-yellow-300">
-                            {'★'.repeat(Math.round(courier.rating))}
-                            {'☆'.repeat(5 - Math.round(courier.rating))}
-                            <span className="text-gray-600 dark:text-gray-300 text-sm ml-1">
-                              {courier.rating}/5 ({courier.deliveriesCount} livraisons)
-                            </span>
-                          </div>
-                          <p className="text-green-400 dark:text-green-300 text-sm">Transport: {courier.transport}</p>
-                        </div>
-                      </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="insurance"
+                      checked={formData.insurance}
+                      onChange={(e) => setFormData(prev => ({ ...prev, insurance: e.target.checked }))}
+                      className="w-4 h-4 bg-gray-50 dark:bg-gray-700/50 border-gray-300 dark:border-gray-600 rounded text-blue-500 dark:text-blue-400 focus:ring-blue-400 dark:focus:ring-blue-300"
+                    />
+                    <label htmlFor="insurance" className="text-sm text-gray-600 dark:text-gray-300">
+                      Ajouter une assurance (+5€)
                     </label>
-                  ))}
+                  </div>
                 </div>
-              )}
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={debouncedGeocodeAddresses}
+                  className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white p-3 rounded-lg transition flex items-center justify-center space-x-2"
+                  aria-label="Calculer le coût"
+                >
+                  <CreditCard size={20} />
+                  <span>Calculer le coût</span>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={isLoading || couriers.length === 0}
+                  className={`w-full ${
+                    isLoading || couriers.length === 0
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
+                  } text-white p-3 rounded-lg transition flex items-center justify-center space-x-2`}
+                  aria-label="Réserver un coursier"
+                  aria-disabled={isLoading || couriers.length === 0}
+                >
+                  {isLoading ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                      aria-label="Chargement"
+                    />
+                  ) : (
+                    <>
+                      <Truck size={20} />
+                      <span>Réserver maintenant</span>
+                    </>
+                  )}
+                </motion.button>
+              </form>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
-            >
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Résumé du coût</h2>
-              {console.log('Rendering cost summary:', { costEstimate, distance, estimatedTime })}
-              <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Coût estimé :</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                    {costEstimate > 0 ? costEstimate.toFixed(2) : 'Non calculé'} €
-                  </span>
+            <div className="space-y-8">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Carte de livraison</h2>
+                <div className="h-[400px] rounded-lg overflow-hidden">
+                  <MapContainer center={[6.3572, 2.4398]} zoom={13} style={{ height: '100%', width: '100%' }}>
+                    <TileLayer
+                      url={
+                        darkMode
+                          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                      }
+                    />
+                    {markers.map((position, index) => (
+                      <Marker key={index} position={position}>
+                        <Popup>{index === 0 ? 'Point de départ' : "Point d'arrivée"}</Popup>
+                      </Marker>
+                    ))}
+                    <MapBounds markers={markers} />
+                  </MapContainer>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Distance :</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                    {distance > 0 ? distance.toFixed(2) : 'Non calculée'} km
-                  </span>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                  <AlertCircle className="mr-2" size={20} />
+                  Informations importantes
+                </h2>
+                <div className="space-y-4 text-gray-600 dark:text-gray-300">
+                  <div className="flex items-start space-x-2">
+                    <Info size={16} className="mt-1 flex-shrink-0" />
+                    <p>Les délais de livraison peuvent varier en fonction du trafic et des conditions météorologiques.</p>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <Info size={16} className="mt-1 flex-shrink-0" />
+                    <p>L'assurance couvre la perte ou les dommages jusqu'à 500€ de valeur déclarée.</p>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <Info size={16} className="mt-1 flex-shrink-0" />
+                    <p>Nos coursiers sont équipés de systèmes de géolocalisation en temps réel pour un suivi précis.</p>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <Info size={16} className="mt-1 flex-shrink-0" />
+                    <p>En cas d'urgence ou de modification de la livraison, contactez notre service client 24/7.</p>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Temps estimé :</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                    {estimatedTime || 'Non calculé'}
-                  </span>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Choisir un coursier</h2>
+                {couriers.length === 0 ? (
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Aucun coursier disponible pour le moment.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {couriers.map(courier => (
+                      <label
+                        key={courier.id}
+                        className={`flex items-center space-x-4 p-4 rounded-lg border ${
+                          selectedCourierId === courier.id
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50'
+                            : 'border-gray-200 dark:border-gray-700'
+                        } cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition`}
+                      >
+                        <input
+                          type="radio"
+                          name="courier"
+                          value={courier.id}
+                          checked={selectedCourierId === courier.id}
+                          onChange={() => setSelectedCourierId(courier.id)}
+                          className="w-4 h-4 text-blue-500 focus:ring-blue-400 dark:focus:ring-blue-300"
+                        />
+                        <div className="flex items-center space-x-4 flex-1">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 flex items-center justify-center overflow-hidden">
+                            {courier.profilePicture ? (
+                              <img src={courier.profilePicture} alt={courier.fullName} className="w-full h-full object-cover" />
+                            ) : (
+                              <User size={24} className="text-white" />
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{courier.fullName}</h3>
+                            <div className="flex items-center space-x-1 text-yellow-400 dark:text-yellow-300">
+                              {'★'.repeat(Math.round(courier.rating))}
+                              {'☆'.repeat(5 - Math.round(courier.rating))}
+                              <span className="text-gray-600 dark:text-gray-300 text-sm ml-1">
+                                {courier.rating}/5 ({courier.deliveriesCount} livraisons)
+                              </span>
+                            </div>
+                            <p className="text-green-400 dark:text-green-300 text-sm">Transport: {courier.transport}</p>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Résumé du coût</h2>
+                {console.log('Rendering cost summary:', { costEstimate, distance, estimatedTime })}
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Coût estimé :</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                      {costEstimate > 0 ? costEstimate.toFixed(2) : 'Non calculé'} €
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Distance :</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                      {distance > 0 ? distance.toFixed(2) : 'Non calculée'} km
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Temps estimé :</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                      {estimatedTime || 'Non calculé'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
-        </div>
-      </motion.div>
-      <Footer />
-    </div>
-  );
+        </motion.div>
+        <Footer darkMode={darkMode} />
+      </div>
+    );
 };
 
 export default Reserv;

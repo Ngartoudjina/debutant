@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion'; // Removed unused AnimatePresence
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
@@ -23,6 +23,45 @@ import admin1 from '../../img/admin1.jpg';
 import admin2 from '../../img/admin2.jpg';
 import admin3 from '../../img/admin3.jpg';
 
+// Define interfaces for components
+interface NavbarProps {
+  darkMode: boolean;
+}
+
+interface FooterProps {
+  darkMode: boolean;
+}
+
+interface ThemeToggleProps {
+  darkMode: boolean;
+  toggleDarkMode: () => void;
+}
+
+// Define interfaces for data
+interface ServiceCard {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+}
+
+interface PricingCard {
+  title: string;
+  price: string;
+  features: string[];
+}
+
+interface TeamMember {
+  name: string;
+  role: string;
+  image: string;
+}
+
+interface SocialLink {
+  Icon: React.ComponentType<{ className?: string }>;
+  href: string;
+  label: string;
+}
+
 const Propos: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
 
@@ -34,7 +73,7 @@ const Propos: React.FC = () => {
     setDarkMode((prev) => !prev);
   };
 
-  const serviceCards = [
+  const serviceCards: ServiceCard[] = [
     {
       icon: Rocket,
       title: 'Livraison Rapide',
@@ -52,7 +91,7 @@ const Propos: React.FC = () => {
     },
   ];
 
-  const pricingCards = [
+  const pricingCards: PricingCard[] = [
     {
       title: 'Starter',
       price: '39',
@@ -68,6 +107,19 @@ const Propos: React.FC = () => {
       price: '149',
       features: ['Livraisons illimitées', 'Support premium', 'Rapports personnalisés'],
     },
+  ];
+
+  const teamMembers: TeamMember[] = [
+    { name: 'John Doe', role: 'CEO', image: admin1 },
+    { name: 'Jane Smith', role: 'CTO', image: admin2 },
+    { name: 'Alice Johnson', role: 'Responsable Clientèle', image: admin3 },
+  ];
+
+  const socialLinks: SocialLink[] = [
+    { Icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
+    { Icon: FaWhatsapp, href: 'https://wa.me/1234567890', label: 'WhatsApp' },
+    { Icon: CiLinkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
+    { Icon: FaInstagram, href: 'https://instagram.com', label: 'Instagram' },
   ];
 
   return (
@@ -286,14 +338,16 @@ const Propos: React.FC = () => {
                 <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
               <div className="flex items-center space-x-3">
-                {[Facebook, FaWhatsapp, CiLinkedin, FaInstagram].map((Icon, index) => (
+                {socialLinks.map(({ Icon, href, label }, index) => (
                   <motion.a
                     key={index}
-                    href="#"
+                    href={href}
                     whileHover={{ scale: 1.2, rotate: 10 }}
                     whileTap={{ scale: 0.9 }}
                     className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
-                    aria-label={`Suivez-nous sur ${Icon.name}`}
+                    aria-label={`Suivez-nous sur ${label}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Icon className="w-6 h-6" />
                   </motion.a>
@@ -323,11 +377,7 @@ const Propos: React.FC = () => {
             Notre Équipe
           </motion.h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {[
-              { name: 'John Doe', role: 'CEO', image: admin1 },
-              { name: 'Jane Smith', role: 'CTO', image: admin2 },
-              { name: 'Alice Johnson', role: 'Responsable Clientèle', image: admin3 },
-            ].map((member, index) => (
+            {teamMembers.map((member, index) => (
               <motion.div
                 key={member.name}
                 initial={{ opacity: 0, y: 50 }}

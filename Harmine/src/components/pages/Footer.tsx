@@ -9,14 +9,20 @@ import {
   FaLinkedin,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import axios, { AxiosError } from "axios"; // Import AxiosError
 import { toast } from "react-toastify";
+
+// Type definition for social media links
+interface SocialLink {
+  href: string;
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
+}
 
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -32,15 +38,21 @@ export default function Footer() {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/api/newsletter/subscribe", { email });
+      const response = await axios.post(
+        process.env.REACT_APP_API_URL || "http://localhost:5000/api/newsletter/subscribe",
+        { email }
+      );
       toast.success(response.data.message, {
         position: "top-right",
         autoClose: 3000,
       });
       setEmail("");
     } catch (error) {
-      console.error("Erreur lors de l'inscription à la newsletter:", error);
-      const errorMessage = error.response?.data?.error || "Une erreur est survenue. Veuillez réessayer.";
+      // Type assertion for AxiosError
+      const axiosError = error as AxiosError<{ error?: string }>;
+      console.error("Erreur lors de l'inscription à la newsletter:", axiosError);
+      const errorMessage =
+        axiosError.response?.data?.error || "Une erreur est survenue. Veuillez réessayer.";
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
@@ -49,6 +61,14 @@ export default function Footer() {
       setIsSubmitting(false);
     }
   };
+
+  const socialLinks: SocialLink[] = [
+    { href: "https://www.facebook.com/abel.beingar?locale=fr_FR", Icon: FaFacebook },
+    { href: "https://linkedin.com", Icon: FaLinkedin },
+    { href: "https://instagram.com", Icon: FaInstagram },
+    { href: "https://twitter.com", Icon: FaTwitter },
+    { href: "https://youtube.com", Icon: FaYoutube },
+  ];
 
   return (
     <footer className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-gray-100 py-16 px-8">
@@ -211,13 +231,7 @@ export default function Footer() {
 
         {/* Réseaux sociaux */}
         <div className="flex justify-end gap-6 mt-16">
-          {[
-            { href: "https://www.facebook.com/abel.beingar?locale=fr_FR", Icon: FaFacebook },
-            { href: "https://linkedin.com", Icon: FaLinkedin },
-            { href: "https://instagram.com", Icon: FaInstagram },
-            { href: "https://twitter.com", Icon: FaTwitter },
-            { href: "https://youtube.com", Icon: FaYoutube },
-          ].map(({ href, Icon }) => (
+          {socialLinks.map(({ href, Icon }) => (
             <a
               key={href}
               href={href}

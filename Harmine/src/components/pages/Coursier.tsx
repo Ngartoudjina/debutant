@@ -20,7 +20,7 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import debounce from "lodash/debounce";
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
-import { auth, authStateObserver } from '../../../firebaseConfig'; // Remplacez par le chemin correct
+import { authStateObserver } from '../../../firebaseConfig'; // Remplacez par le chemin correct
 
 // Configuration des fichiers
 const FILE_CONFIG = {
@@ -136,7 +136,7 @@ const Courier: React.FC = () => {
 
   // Observer l'état d'authentification
   useEffect(() => {
-    const unsubscribe = authStateObserver(({ user, userData, isAuthenticated }) => {
+    const unsubscribe = authStateObserver(({ user, isAuthenticated }) => {
       if (isAuthenticated && user) {
         setCurrentUser(user);
       } else {

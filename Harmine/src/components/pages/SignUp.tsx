@@ -1,4 +1,4 @@
-import React, { useState, FormEvent, ChangeEvent } from "react";
+import { useState, FormEvent, ChangeEvent, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -14,14 +14,15 @@ import {
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import CookieConsentBanner from "../cookies/CookieConsentBanner";
-import { signInWithCustomTokenAuth } from "../../../firebaseConfig";
+import { signInWithCustomToken, getAuth } from "firebase/auth";
 import { getMessagingInstance } from "../../../firebaseConfig";
 import { getToken, onMessage } from "firebase/messaging";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import type { User as FirebaseUser } from "firebase/auth";
 
+// Interfaces
 interface SignupFormData {
   firstName: string;
   lastName: string;
@@ -32,7 +33,8 @@ interface SignupFormData {
   confirmPassword: string;
 }
 
-export default function SignupPage() {
+const SignupPage: React.FC = () => {
+  const auth = getAuth();
   const [formData, setFormData] = useState<SignupFormData>({
     firstName: "",
     lastName: "",
@@ -52,9 +54,22 @@ export default function SignupPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
 
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      setIsDarkMode(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
+    setIsDarkMode((prev) => {
+      const newDarkMode = !prev;
+      document.documentElement.classList.toggle("dark", newDarkMode);
+      localStorage.setItem("theme", newDarkMode ? "dark" : "light");
+      return newDarkMode;
+    });
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -67,10 +82,14 @@ export default function SignupPage() {
 
   const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/check-email', { email });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/check-email",
+        { email },
+        { headers: { "Content-Type": "application/json" }, timeout: 5000 }
+      );
       return response.data.exists;
     } catch (error) {
-      console.error('Erreur vérification email:', error);
+      console.error("Erreur vérification email:", error);
       return false;
     }
   };
@@ -82,12 +101,11 @@ export default function SignupPage() {
     }));
   };
 
-  const setupFCM = async (user: FirebaseUser) => {
+  const setupFCM = async (user: FirebaseUser): Promise<string | null> => {
     console.log("🔔 Début de setupFCM pour userId:", user?.uid || "UNDEFINED!");
-    let fcmToken = null;
+    let fcmToken: string | null = null;
 
     try {
-      // Vérification stricte de l'utilisateur
       if (!user || !user.uid) {
         console.error("❌ user ou user.uid manquant:", { user: !!user, uid: user?.uid });
         throw new Error("Utilisateur ou identifiant utilisateur manquant");
@@ -99,7 +117,6 @@ export default function SignupPage() {
         displayName: user.displayName,
       });
 
-      // Vérifier le support des notifications
       if (!("serviceWorker" in navigator)) {
         console.warn("⚠️ Service workers non supportés");
         throw new Error("Service workers non supportés par ce navigateur");
@@ -113,7 +130,6 @@ export default function SignupPage() {
         throw new Error("Notifications non supportées par ce navigateur");
       }
 
-      // Demander la permission
       console.log("📜 Demande de permission notifications...");
       const permission = await Notification.requestPermission();
       console.log("📜 Permission notification:", permission);
@@ -123,21 +139,18 @@ export default function SignupPage() {
         toast.warn("Les notifications sont désactivées. Activez-les pour recevoir des mises à jour.");
       }
 
-      // Initialiser le messaging
       const messaging = await getMessagingInstance();
       if (!messaging) {
         throw new Error("Impossible d'initialiser Firebase Messaging");
       }
       console.log("✅ Messaging initialisé");
 
-      // Vérifier VAPID_KEY
       const vapidKey = import.meta.env.VITE_VAPID_KEY;
       if (!vapidKey) {
         throw new Error("VITE_VAPID_KEY non définie dans les variables d'environnement");
       }
       console.log("✅ VAPID key trouvée");
 
-      // Enregistrer le service worker
       console.log("📡 Enregistrement du service worker...");
       let registration;
       try {
@@ -145,12 +158,14 @@ export default function SignupPage() {
         console.log("✅ Service worker enregistré:", registration);
         await navigator.serviceWorker.ready;
         console.log("✅ Service worker prêt");
-      } catch (swError) {
+      } catch (swError: unknown) {
         console.error("❌ Erreur service worker:", swError);
-        throw new Error(`Erreur service worker: ${swError.message}`);
+        if (swError instanceof Error) {
+          throw new Error(`Erreur service worker: ${swError.message}`);
+        }
+        throw new Error("Erreur service worker inconnue");
       }
 
-      // Générer le token FCM
       if (permission === "granted") {
         console.log("🔑 Génération du token FCM...");
         try {
@@ -177,10 +192,8 @@ export default function SignupPage() {
         console.log("ℹ️ Permissions non accordées, pas de génération de token");
       }
 
-      // Envoyer le token au backend
       console.log("🌐 Préparation envoi token pour userId:", user.uid, "token:", fcmToken || "null");
       try {
-        // Attendre l'authentification complète
         const idToken = await user.getIdToken(true);
         if (!idToken) {
           throw new Error("Échec récupération idToken");
@@ -206,18 +219,18 @@ export default function SignupPage() {
         );
 
         console.log("✅ Réponse backend:", response.data);
-      } catch (axiosError: any) {
+      } catch (axiosError: unknown) {
         console.error("❌ Erreur envoi token au backend:", axiosError);
-        console.error("❌ Détails erreur:", {
-          status: axiosError.response?.status,
-          data: axiosError.response?.data,
-          message: axiosError.message,
-        });
-        // Ne pas bloquer le processus
+        if (axiosError instanceof AxiosError && axiosError.response) {
+          console.error("❌ Détails erreur:", {
+            status: axiosError.response.status,
+            data: axiosError.response.data,
+            message: axiosError.message,
+          });
+        }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ Erreur générale setupFCM:", error);
-      // Envoyer un token null si possible
       if (user && user.uid) {
         try {
           const idToken = await user.getIdToken(true);
@@ -249,8 +262,7 @@ export default function SignupPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("📝 Début du processus d'inscription...");
-  
-    // Validations existantes
+
     if (formData.password !== formData.confirmPassword) {
       toast.error("Les mots de passe ne correspondent pas");
       return;
@@ -278,24 +290,22 @@ export default function SignupPage() {
       toast.error("Numéro de téléphone invalide");
       return;
     }
-  
+
     setIsLoading(true);
-  
+
     try {
-      // Vérifier si l'email existe déjà
       const emailExists = await checkEmailExists(formData.email);
       if (emailExists) {
         toast.error("Cet email est déjà utilisé");
         return;
       }
-  
+
       console.log("✅ Validation réussie, données:", {
         ...formData,
         password: "***",
         confirmPassword: "***",
       });
-  
-      // Envoyer la requête d'inscription
+
       console.log("🌐 Envoi requête inscription...");
       const response = await axios.post(
         "http://localhost:5000/api/auth/signup",
@@ -309,23 +319,34 @@ export default function SignupPage() {
         },
         {
           headers: { "Content-Type": "application/json" },
-          timeout: 100000,
+          timeout: 10000,
         }
       );
-  
+
       console.log("📄 Réponse inscription:", response.data);
-  
-      // Afficher un message indiquant qu'un email de vérification a été envoyé
+
+      const { customToken } = response.data;
+      if (!customToken) {
+        throw new Error("Aucun token d'authentification reçu");
+      }
+
+      const userCredential = await signInWithCustomToken(auth, customToken);
+      const user = userCredential.user;
+
+      console.log("✅ Utilisateur authentifié:", user.uid);
+
+      await setupFCM(user);
+
       toast.success("Inscription réussie ! Veuillez vérifier votre email pour activer votre compte.");
       setTimeout(() => {
         console.log("🚀 Redirection vers /login...");
-        navigate("/login"); // Modifier ici pour rediriger vers /login
-      }, 1000);
-    } catch (error: any) {
+        navigate("/login");
+      }, 500);
+    } catch (error: unknown) {
       console.error("❌ Erreur inscription:", error);
       let errorMessage = "Erreur lors de l'inscription";
-  
-      if (error.response) {
+
+      if (error instanceof AxiosError && error.response) {
         const { status, data } = error.response;
         if (status === 400) {
           errorMessage = data.error || "Données invalides";
@@ -334,12 +355,14 @@ export default function SignupPage() {
         } else if (status === 500) {
           errorMessage = "Erreur serveur, veuillez réessayer";
         }
-      } else if (error.code === "ECONNABORTED") {
-        errorMessage = "Timeout: Le serveur met trop de temps à répondre";
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (error instanceof Error) {
+        if (error.message.includes("ECONNABORTED")) {
+          errorMessage = "Timeout: Le serveur met trop de temps à répondre";
+        } else {
+          errorMessage = error.message;
+        }
       }
-  
+
       toast.error(errorMessage);
     } finally {
       console.log("🏁 Fin du processus d'inscription");
@@ -432,7 +455,7 @@ export default function SignupPage() {
 
           <div className="relative">
             <PhoneInput
-              country={"fr"}
+              country={"bj"}
               value={formData.phone}
               onChange={handlePhoneChange}
               placeholder="Numéro de téléphone"
@@ -542,7 +565,10 @@ export default function SignupPage() {
 
         <div className="text-center mt-6 text-gray-600 dark:text-gray-300">
           Vous avez déjà un compte ?
-          <a href="/login" className="text-blue-600 dark:text-blue-300 hover:underline ml-2">
+          <a
+            href="/login"
+            className="text-blue-600 dark:text-blue-300 hover:underline ml-2"
+          >
             Connectez-vous
           </a>
         </div>
@@ -550,4 +576,6 @@ export default function SignupPage() {
       <CookieConsentBanner />
     </div>
   );
-}
+};
+
+export default SignupPage;

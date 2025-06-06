@@ -31,7 +31,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
     vehicle: courier?.vehicle || '',
     coverageZone: courier?.coverageZone || COVERAGE_ZONES.PARIS_CENTRE,
     motivation: courier?.motivation || '',
-    photo: null,
+    photo: undefined, // Changé de null à undefined
   });
 
   // Helper function to get photo URL
@@ -63,7 +63,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
         vehicle: courier.vehicle || '',
         coverageZone: courier.coverageZone || COVERAGE_ZONES.PARIS_CENTRE,
         motivation: courier.motivation || '',
-        photo: null,
+        photo: undefined, // Changé de null à undefined
       });
       setPhotoPreview(getPhotoUrl(courier.photo));
     }
@@ -120,7 +120,7 @@ const CourierForm: React.FC<CourierFormProps> = ({ courier, onSubmit, isEditing 
         vehicle: '',
         coverageZone: COVERAGE_ZONES.PARIS_CENTRE,
         motivation: '',
-        photo: null,
+        photo: undefined, // Changé de null à undefined
       });
       setPhotoPreview(null);
     }

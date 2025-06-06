@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import CookieConsentBanner from "../cookies/CookieConsentBanner";
 import {
   Home,
@@ -92,11 +92,16 @@ interface FirebaseMessage {
   };
 }
 
+interface CookieConsentBannerProps {
+  onAccept: () => void;
+  onLearnMore: () => void;
+}
+
 // Lazy-load Map components
-const MapContainer = React.lazy(() => import("react-leaflet").then((module) => ({ default: module.MapContainer })));
-const TileLayer = React.lazy(() => import("react-leaflet").then((module) => ({ default: module.TileLayer })));
-const Marker = React.lazy(() => import("react-leaflet").then((module) => ({ default: module.Marker })));
-const Popup = React.lazy(() => import("react-leaflet").then((module) => ({ default: module.Popup })));
+const MapContainer = React.lazy(() => import("react-leaflet").then(({ MapContainer }) => ({ default: MapContainer })));
+const TileLayer = React.lazy(() => import("react-leaflet").then(({ TileLayer }) => ({ default: TileLayer })));
+const Marker = React.lazy(() => import("react-leaflet").then(({ Marker }) => ({ default: Marker })));
+const Popup = React.lazy(() => import("react-leaflet").then(({ Popup }) => ({ default: Popup })));
 
 // Fix pour les icônes Leaflet
 import L from "leaflet";
@@ -292,13 +297,14 @@ const Client: React.FC = () => {
           if (!response.ok) throw new Error("Erreur lors de l'enregistrement du token FCM");
         }
         onMessageListener()
-          .then((payload: FirebaseMessage) => {
-            toast.success(payload.notification.body);
+          .then((payload: unknown) => {
+            const message = payload as FirebaseMessage;
+            toast.success(message.notification.body);
             setNotifications((prev) => [
               {
-                id: payload.messageId,
-                message: payload.notification.body,
-                title: payload.notification.title,
+                id: message.messageId,
+                message: message.notification.body,
+                title: message.notification.title,
                 createdAt: new Date().toISOString(),
                 read: false,
               },
@@ -937,6 +943,21 @@ const Client: React.FC = () => {
       )}
     </AnimatePresence>
   );
+
+  const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onAccept, onLearnMore }) => {
+  return (
+    <div>
+      <p>
+        Nous utilisons des cookies pour vous garantir la meilleure expérience sur notre site. 
+        En continuant votre navigation, vous acceptez notre utilisation des cookies.
+      </p>
+      <div>
+        <button onClick={onAccept}>Accepter</button>
+        <button onClick={onLearnMore}>En savoir plus</button>
+      </div>
+    </div>
+  );
+};
 
   const renderDashboard = () => {
     const widgetMap: { [key: string]: JSX.Element } = {

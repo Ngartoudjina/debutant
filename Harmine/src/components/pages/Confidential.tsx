@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -16,6 +16,13 @@ import CookieConsentBanner from "../cookies/CookieConsentBanner";
 import ThemeToggle from "./ThemeToggle";
 
 export default function Confidential() {
+  // Ajout du state pour le theme
+  const [darkMode, setDarkMode] = useState(true);
+  
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode(prev => !prev);
+  }, []);
+
   const renderSection = useCallback(
     (title: string, content: React.ReactNode, Icon: React.ComponentType<LucideProps>) => (
       <motion.div
@@ -40,7 +47,7 @@ export default function Confidential() {
       className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-blue-950 text-gray-200"
     >
       <Navbar />
-      <ThemeToggle />
+      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
 
       <div className="container mx-auto px-6 py-24 max-w-4xl">
         <motion.div

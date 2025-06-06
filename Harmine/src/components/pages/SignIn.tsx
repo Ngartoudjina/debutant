@@ -1,5 +1,5 @@
-import React, { useState, FormEvent, ChangeEvent } from "react";
-import { motion, useAnimation } from "framer-motion";
+import { useState, FormEvent, ChangeEvent } from "react";
+import { motion, useAnimation, AnimationControls } from "framer-motion";
 import { Lock, Mail, Eye, EyeOff, LogIn, UserPlus, Moon, Sun } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import EnhancedGoogleLogin from "./EnhancedGoogleLogin";
@@ -10,12 +10,23 @@ import { getUserData, getMessagingInstance } from "../../../firebaseConfig";
 import { getToken, onMessage } from "firebase/messaging";
 import axios from "axios";
 
+// Interfaces
 interface LoginFormData {
   email: string;
   password: string;
 }
 
-export default function LoginPage() {
+interface UserData {
+  role: "admin" | "user" | string; // Adjust based on your Firestore user roles
+  [key: string]: any; // Allow additional fields
+}
+
+interface CredentialResponse {
+  credential?: string;
+  [key: string]: any;
+}
+
+const LoginPage: React.FC = () => {
   const auth = getAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,19 +42,32 @@ export default function LoginPage() {
   const emailControls = useAnimation();
   const passwordControls = useAnimation();
 
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      setIsDarkMode(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
+    setIsDarkMode((prev) => {
+      const newDarkMode = !prev;
+      document.documentElement.classList.toggle("dark", newDarkMode);
+      localStorage.setItem("theme", newDarkMode ? "dark" : "light");
+      return newDarkMode;
+    });
   };
 
-  const handleInputFocus = (controls: any) => {
+  const handleInputFocus = (controls: AnimationControls) => {
     controls.start({
       pathLength: 1,
       transition: { duration: 1.5, repeat: Infinity, ease: "linear" },
     });
   };
 
-  const handleInputBlur = (controls: any) => {
+  const handleInputBlur = (controls: AnimationControls) => {
     controls.stop();
     controls.start({ pathLength: 0 });
   };
@@ -56,50 +80,49 @@ export default function LoginPage() {
     }));
   };
 
-  const setupFCM = async (idToken: string, userId: string) => {
+  const setupFCM = async (idToken: string, userId: string): Promise<string | null> => {
     console.log("Configuration FCM pour userId:", userId);
-    
+
     try {
       const messaging = await getMessagingInstance();
-      let fcmToken = null;
-      
+      let fcmToken: string | null = null;
+
       if (messaging && "serviceWorker" in navigator && "PushManager" in window) {
-        // Enregistrer le service worker avec timeout
         const registrationPromise = navigator.serviceWorker.register(
           "/firebase-messaging-sw.js",
           {
             scope: "/firebase-cloud-messaging-push-scope",
           }
         );
-        
-        const timeoutPromise = new Promise((_, reject) =>
+
+        const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Service Worker timeout")), 10000)
         );
 
-        const registration = await Promise.race([registrationPromise, timeoutPromise]) as ServiceWorkerRegistration;
+        const registration = (await Promise.race([
+          registrationPromise,
+          timeoutPromise,
+        ])) as ServiceWorkerRegistration;
         await navigator.serviceWorker.ready;
-        
-        // Générer le token FCM avec timeout
+
         const tokenPromise = getToken(messaging, {
           vapidKey: import.meta.env.VITE_VAPID_KEY,
           serviceWorkerRegistration: registration,
         });
-        
-        const tokenTimeoutPromise = new Promise((_, reject) =>
+
+        const tokenTimeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("FCM Token timeout")), 10000)
         );
 
-        fcmToken = await Promise.race([tokenPromise, tokenTimeoutPromise]) as string;
+        fcmToken = (await Promise.race([tokenPromise, tokenTimeoutPromise])) as string;
         console.log("Token FCM généré");
 
-        // Écouter les messages
         onMessage(messaging, (payload) => {
           console.log("Notification reçue:", payload);
           toast.info(`${payload.notification?.title}: ${payload.notification?.body}`);
         });
       }
 
-      // Enregistrer le token au backend avec timeout
       const registerPromise = axios.post(
         "http://localhost:5000/api/notifications/register",
         { fcmToken },
@@ -112,18 +135,17 @@ export default function LoginPage() {
         }
       );
 
-      const registerTimeoutPromise = new Promise((_, reject) =>
+      const registerTimeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Register FCM timeout")), 8000)
       );
 
       await Promise.race([registerPromise, registerTimeoutPromise]);
       console.log("FCM configuré avec succès");
-      
+
       return fcmToken;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erreur FCM:", error);
-      
-      // En cas d'erreur, on enregistre un token null sans bloquer
+
       try {
         await axios.post(
           "http://localhost:5000/api/notifications/register",
@@ -138,24 +160,28 @@ export default function LoginPage() {
         );
       } catch (registerError) {
         console.error("Erreur lors de l'enregistrement FCM null:", registerError);
-        // On continue même si cette étape échoue
       }
 
-      const message = error.code === "messaging/permission-blocked"
-        ? "Les notifications sont bloquées. Activez-les dans les paramètres du navigateur."
-        : "Notifications non disponibles sur ce navigateur.";
-      
+      const message =
+        error instanceof Error && error.message === "messaging/permission-blocked"
+          ? "Les notifications sont bloquées. Activez-les dans les paramètres du navigateur."
+          : "Notifications non disponibles sur ce navigateur.";
+
       toast.warn(message);
       return null;
     }
   };
 
-  const authenticateWithBackend = async (email: string, password: string, retryCount = 0): Promise<any> => {
+  const authenticateWithBackend = async (
+    email: string,
+    password: string,
+    retryCount = 0
+  ): Promise<{ success: boolean; idToken?: string; customToken?: string; token?: string; error?: string }> => {
     const maxRetries = 2;
-    
+
     try {
       console.log(`Tentative connexion backend ${retryCount + 1}/${maxRetries + 1}`);
-      
+
       const response = await axios.post(
         "http://localhost:5000/api/auth/signin",
         { email, password },
@@ -164,56 +190,58 @@ export default function LoginPage() {
           headers: { "Content-Type": "application/json" },
         }
       );
-      
+
       console.log("Réponse backend reçue");
       return response.data;
-    } catch (error: any) {
-      console.error(`Erreur backend tentative ${retryCount + 1}:`, error.message);
-      
-      if (retryCount < maxRetries && 
-          (error.code === 'ECONNABORTED' || error.code === 'NETWORK_ERROR')) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+    } catch (error: unknown) {
+      console.error(`Erreur backend tentative ${retryCount + 1}:`, error);
+
+      if (
+        retryCount < maxRetries &&
+        error instanceof Error &&
+        (error.message.includes("ECONNABORTED") || error.message.includes("NETWORK_ERROR"))
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (retryCount + 1)));
         return authenticateWithBackend(email, password, retryCount + 1);
       }
-      
+
       throw error;
     }
   };
 
-  const authenticateWithFirebase = async (customToken: string, retryCount = 0): Promise<any> => {
+  const authenticateWithFirebase = async (customToken: string, retryCount = 0) => {
     const maxRetries = 2;
-    
+
     try {
       console.log(`Tentative auth Firebase ${retryCount + 1}/${maxRetries + 1}`);
-      
+
       const userCredential = await signInWithCustomToken(auth, customToken);
       console.log("Authentification Firebase réussie");
       return userCredential;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Erreur Firebase tentative ${retryCount + 1}:`, error);
-      
+
       if (retryCount < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (retryCount + 1)));
         return authenticateWithFirebase(customToken, retryCount + 1);
       }
-      
+
       throw error;
     }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (isLoading) {
       console.log("Connexion déjà en cours, annulation");
       return;
     }
-    
+
     console.log("Début connexion avec email:", formData.email);
     setIsLoading(true);
 
     try {
-      // Validation
       if (!formData.email || !formData.password) {
         throw new Error("Email et mot de passe requis");
       }
@@ -221,9 +249,8 @@ export default function LoginPage() {
         throw new Error("Email invalide");
       }
 
-      // 1. Authentification backend avec timeout global
       const backendPromise = authenticateWithBackend(formData.email, formData.password);
-      const backendTimeoutPromise = new Promise((_, reject) =>
+      const backendTimeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Timeout connexion backend")), 15000)
       );
 
@@ -238,9 +265,8 @@ export default function LoginPage() {
         throw new Error("Aucun token reçu du backend");
       }
 
-      // 2. Authentification Firebase avec timeout global
       const firebasePromise = authenticateWithFirebase(customToken);
-      const firebaseTimeoutPromise = new Promise((_, reject) =>
+      const firebaseTimeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Timeout authentification Firebase")), 15000)
       );
 
@@ -250,11 +276,10 @@ export default function LoginPage() {
 
       console.log("Utilisateur connecté:", user.uid);
 
-      // 3. Stockage local
       try {
         localStorage.setItem("authToken", idToken);
         localStorage.setItem("userId", user.uid);
-        
+
         if (isRememberMe) {
           localStorage.setItem("userEmail", formData.email);
         } else {
@@ -262,66 +287,50 @@ export default function LoginPage() {
         }
       } catch (storageError) {
         console.error("Erreur stockage local:", storageError);
-        // Continue même si le stockage échoue
       }
 
-      // 4. Récupération données utilisateur avec timeout
       const userDataPromise = getUserData(user.uid);
-      const userDataTimeoutPromise = new Promise((_, reject) =>
+      const userDataTimeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Timeout récupération données utilisateur")), 10000)
       );
 
-      const userData = await Promise.race([userDataPromise, userDataTimeoutPromise]);
-      
+      const userData = (await Promise.race([userDataPromise, userDataTimeoutPromise])) as UserData;
+
       if (!userData) {
         throw new Error("Données utilisateur non trouvées");
       }
 
       console.log("Données utilisateur récupérées");
 
-      // 5. Configuration FCM (non bloquante)
-      setupFCM(idToken, user.uid).catch(error => {
+      setupFCM(idToken, user.uid).catch((error) => {
         console.error("Erreur FCM non bloquante:", error);
       });
 
       toast.success("Connexion réussie !");
 
-      // 6. Redirection
       const redirectTo = location.state?.from || (userData.role === "admin" ? "/admin" : "/");
       console.log("Redirection vers:", redirectTo);
       navigate(redirectTo, { replace: true });
-
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erreur connexion:", error);
-      
+
       let errorMessage = "Erreur lors de la connexion";
 
-      if (error.code) {
-        switch (error.code) {
-          case "auth/invalid-custom-token":
-            errorMessage = "Token invalide. Veuillez réessayer.";
-            break;
-          case "auth/network-request-failed":
-            errorMessage = "Problème de connexion réseau.";
-            break;
-          case "auth/wrong-password":
-            errorMessage = "Mot de passe incorrect";
-            break;
-          case "auth/user-not-found":
-            errorMessage = "Utilisateur non trouvé";
-            break;
-          case "auth/too-many-requests":
-            errorMessage = "Trop de tentatives. Réessayez plus tard.";
-            break;
-          case "auth/user-disabled":
-            errorMessage = "Ce compte est désactivé";
-            break;
-          default:
-            errorMessage = error.message || "Erreur inconnue";
-        }
-      } else if (error.message) {
+      if (error instanceof Error) {
         if (error.message.includes("timeout") || error.message.includes("Timeout")) {
           errorMessage = "Délai d'attente dépassé. Vérifiez votre connexion.";
+        } else if (error.message.includes("auth/invalid-custom-token")) {
+          errorMessage = "Token invalide. Veuillez réessayer.";
+        } else if (error.message.includes("auth/network-request-failed")) {
+          errorMessage = "Problème de connexion réseau.";
+        } else if (error.message.includes("auth/wrong-password")) {
+          errorMessage = "Mot de passe incorrect";
+        } else if (error.message.includes("auth/user-not-found")) {
+          errorMessage = "Utilisateur non trouvé";
+        } else if (error.message.includes("auth/too-many-requests")) {
+          errorMessage = "Trop de tentatives. Réessayez plus tard.";
+        } else if (error.message.includes("auth/user-disabled")) {
+          errorMessage = "Ce compte est désactivé";
         } else {
           errorMessage = error.message;
         }
@@ -334,17 +343,16 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = async (credentialResponse: any) => {
+  const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
     if (isLoading) {
       console.log("Connexion Google déjà en cours");
       return;
     }
-    
+
     console.log("Début connexion Google");
     setIsLoading(true);
-    
+
     try {
-      // Authentification Google backend avec timeout
       const response = await Promise.race([
         axios.post(
           "http://localhost:5000/api/auth/signin-google",
@@ -354,10 +362,10 @@ export default function LoginPage() {
             headers: { "Content-Type": "application/json" },
           }
         ),
-        new Promise((_, reject) =>
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Timeout connexion Google")), 12000)
         ),
-      ]) as any;
+      ]);
 
       const data = response.data;
       console.log("Réponse Google signin reçue");
@@ -371,20 +379,18 @@ export default function LoginPage() {
         throw new Error("Aucun token Google reçu");
       }
 
-      // Authentification Firebase
       const userCredential = await Promise.race([
         signInWithCustomToken(auth, customToken),
-        new Promise((_, reject) =>
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Timeout auth Firebase Google")), 10000)
         ),
-      ]) as any;
+      ]);
 
       const user = userCredential.user;
       const idToken = await user.getIdToken();
 
       console.log("Utilisateur Google connecté:", user.uid);
 
-      // Stockage
       try {
         localStorage.setItem("authToken", idToken);
         localStorage.setItem("userId", user.uid);
@@ -392,31 +398,30 @@ export default function LoginPage() {
         console.error("Erreur stockage Google:", error);
       }
 
-      // Données utilisateur
-      const userData = await Promise.race([
+      const userData = (await Promise.race([
         getUserData(user.uid),
-        new Promise((_, reject) =>
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Timeout données utilisateur Google")), 8000)
         ),
-      ]);
+      ])) as UserData;
 
       if (!userData) {
         throw new Error("Données utilisateur Google non trouvées");
       }
 
-      // FCM non bloquant
-      setupFCM(idToken, user.uid).catch(error => {
+      setupFCM(idToken, user.uid).catch((error) => {
         console.error("Erreur FCM Google non bloquante:", error);
       });
 
       toast.success("Connexion Google réussie !");
-      
+
       const redirectTo = location.state?.from || (userData.role === "admin" ? "/admin" : "/");
       navigate(redirectTo, { replace: true });
-      
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erreur Google login:", error);
-      toast.error(error.message || "Erreur lors de la connexion avec Google");
+      const errorMessage =
+        error instanceof Error ? error.message : "Erreur lors de la connexion avec Google";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -448,9 +453,7 @@ export default function LoginPage() {
           <h1 className="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-300 dark:to-purple-500">
             Dynamism Express
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Connectez-vous à votre compte
-          </p>
+          <p className="text-gray-600 dark:text-gray-300">Connectez-vous à votre compte</p>
         </div>
 
         <div className="mb-6">
@@ -489,22 +492,19 @@ export default function LoginPage() {
               <motion.div
                 className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden"
                 initial={{
-                  borderImageSource:
-                    "linear-gradient(90deg, transparent, transparent)",
+                  borderImageSource: "linear-gradient(90deg, transparent, transparent)",
                 }}
                 animate={emailControls}
                 variants={{
                   active: {
-                    borderImageSource:
-                      "linear-gradient(90deg, #3b82f6, #8b5cf6)",
+                    borderImageSource: "linear-gradient(90deg, #3b82f6, #8b5cf6)",
                     borderWidth: "2px",
                     borderStyle: "solid",
                     borderImageSlice: 1,
                     transition: { duration: 0.3 },
                   },
                   inactive: {
-                    borderImageSource:
-                      "linear-gradient(90deg, transparent, transparent)",
+                    borderImageSource: "linear-gradient(90deg, transparent, transparent)",
                     borderWidth: "0px",
                     transition: { duration: 0.3 },
                   },
@@ -553,22 +553,19 @@ export default function LoginPage() {
               <motion.div
                 className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden"
                 initial={{
-                  borderImageSource:
-                    "linear-gradient(90deg, transparent, transparent)",
+                  borderImageSource: "linear-gradient(90deg, transparent, transparent)",
                 }}
                 animate={passwordControls}
                 variants={{
                   active: {
-                    borderImageSource:
-                      "linear-gradient(90deg, #3b82f6, #8b5cf6)",
+                    borderImageSource: "linear-gradient(90deg, #3b82f6, #8b5cf6)",
                     borderWidth: "2px",
                     borderStyle: "solid",
                     borderImageSlice: 1,
                     transition: { duration: 0.3 },
                   },
                   inactive: {
-                    borderImageSource:
-                      "linear-gradient(90deg, transparent, transparent)",
+                    borderImageSource: "linear-gradient(90deg, transparent, transparent)",
                     borderWidth: "0px",
                     transition: { duration: 0.3 },
                   },
@@ -600,11 +597,7 @@ export default function LoginPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-300 transition"
               >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
@@ -672,4 +665,6 @@ export default function LoginPage() {
       <CookieConsentBanner />
     </div>
   );
-}
+};
+
+export default LoginPage;
