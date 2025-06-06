@@ -4,7 +4,6 @@ import {
   Cloud as CloudIcon,
   CloudRain,
   CloudLightning,
-  Phone,
   MapPin,
   Package,
   Clock,

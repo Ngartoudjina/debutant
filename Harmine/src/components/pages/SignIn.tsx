@@ -1,4 +1,4 @@
-import { useState, FormEvent, ChangeEvent } from "react";
+import { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import { motion, useAnimation, AnimationControls } from "framer-motion";
 import { Lock, Mail, Eye, EyeOff, LogIn, UserPlus, Moon, Sun } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";

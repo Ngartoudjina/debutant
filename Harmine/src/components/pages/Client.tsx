@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
-import CookieConsentBanner from "../cookies/CookieConsentBanner";
 import {
   Home,
   Package,

@@ -23,20 +23,6 @@ import admin1 from '../../img/admin1.jpg';
 import admin2 from '../../img/admin2.jpg';
 import admin3 from '../../img/admin3.jpg';
 
-// Define interfaces for components
-interface NavbarProps {
-  darkMode: boolean;
-}
-
-interface FooterProps {
-  darkMode: boolean;
-}
-
-interface ThemeToggleProps {
-  darkMode: boolean;
-  toggleDarkMode: () => void;
-}
-
 // Define interfaces for data
 interface ServiceCard {
   icon: React.ComponentType<{ className?: string }>;

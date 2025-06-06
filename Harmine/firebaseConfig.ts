@@ -23,7 +23,6 @@ const firebaseConfig = {
 
 // Initialisation de l'application Firebase seulement si elle n'existe pas
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 

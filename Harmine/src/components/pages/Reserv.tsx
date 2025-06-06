@@ -44,7 +44,8 @@ interface Courier {
 }
 
 interface CourierResponse {
-  data: Courier[];
+  data?: Courier[];
+  error?: string;
 }
 
 // Configuration des marqueurs Leaflet
@@ -86,48 +87,29 @@ const Reserv = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [markers, setMarkers] = useState<[number, number][]>([]);
   const [estimatedTime, setEstimatedTime] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const [pricePerKg, setPricePerKg] = useState(0);
   const [distance, setDistance] = useState(0);
   const [couriers, setCouriers] = useState<Courier[]>([]);
   const [selectedCourierId, setSelectedCourierId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const [darkMode, setDarkMode] = useState(false);
-  
-    useEffect(() => {
-      document.documentElement.classList.toggle('dark', darkMode);
-    }, [darkMode]);
-  
-    const togleDarkMode = () => {
-      setDarkMode((prev) => !prev);
-    };
-
-  // Log costEstimate updates
   useEffect(() => {
-    console.log('costEstimate updated:', costEstimate);
-  }, [costEstimate]);
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
 
-  // Log submit button state
-  useEffect(() => {
-    console.log('Submit button state:', { isLoading, couriersLength: couriers.length });
-  }, [isLoading, couriers.length]);
+  const toggleDarkMode = () => {
+    setDarkMode((prev) => !prev);
+    localStorage.setItem('theme', darkMode ? 'light' : 'dark');
+  };
 
-  // Log state changes
-  useEffect(() => {
-    console.log('State changed:', { formData, pickupCoords, deliveryCoords, costEstimate, distance, estimatedTime });
-  }, [formData, pickupCoords, deliveryCoords, costEstimate, distance, estimatedTime]);
-
-  // Load theme from localStorage on mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
+      setDarkMode(true);
     }
   }, []);
 
-  // Fetch price per kilogram from Firestore
   useEffect(() => {
     const fetchPricePerKg = async () => {
       try {
@@ -148,7 +130,6 @@ const Reserv = () => {
     fetchPricePerKg();
   }, []);
 
-  // Fetch available couriers
   useEffect(() => {
     const fetchCouriers = async () => {
       try {
@@ -159,7 +140,7 @@ const Reserv = () => {
         }
 
         const token = await user.getIdToken();
-        const response = await fetch('http://localhost:5000/api/truecoursiers/available', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/truecoursiers/available`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -169,13 +150,9 @@ const Reserv = () => {
         if (!response.ok) {
           throw new Error(result.error || 'Erreur lors de la récupération des coursiers');
         }
-        console.log('Couriers fetched:', result.data);
-        setCouriers(result.data);
-        if (result.data.length > 0) {
+        setCouriers(result.data || []);
+        if (result.data && result.data.length > 0) {
           setSelectedCourierId(result.data[0].id);
-          console.log('Selected courier ID:', result.data[0].id);
-        } else {
-          console.warn('No couriers available');
         }
       } catch (error: any) {
         console.error('Erreur lors de la récupération des coursiers:', error);
@@ -185,14 +162,6 @@ const Reserv = () => {
     fetchCouriers();
   }, []);
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', !isDarkMode ? 'dark' : 'light');
-  };
-
-  // Geocode addresses using Nominatim
   const geocodeAddresses = async (): Promise<void> => {
     try {
       if (!formData.pickupAddress || !formData.deliveryAddress) {
@@ -205,8 +174,8 @@ const Reserv = () => {
       const pickupResponse = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(pickupQuery)}&limit=1`
       );
+      constწ
       const pickupData = await pickupResponse.json();
-      console.log('Pickup geocoding results:', pickupData);
       if (!pickupData[0]) {
         throw new Error('Adresse de prise en charge non trouvée');
       }
@@ -217,7 +186,6 @@ const Reserv = () => {
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(deliveryQuery)}&limit=1`
       );
       const deliveryData = await deliveryResponse.json();
-      console.log('Delivery geocoding results:', deliveryData);
       if (!deliveryData[0]) {
         throw new Error('Adresse de livraison non trouvée');
       }
@@ -248,13 +216,11 @@ const Reserv = () => {
     }
   };
 
-  // Debounced geocodeAddresses
   const debouncedGeocodeAddresses = debounce(geocodeAddresses, 1000);
 
-  // Calculate distance between coordinates
   const calculateDistance = (coords1: Coordinates, coords2: Coordinates) => {
     const toRad = (value: number) => (value * Math.PI) / 180;
-    const R = 6371; // Rayon de la Terre en km
+    const R = 6371;
     const dLat = toRad(coords2.lat - coords1.lat);
     const dLon = toRad(coords2.lng - coords1.lng);
     const lat1 = toRad(coords1.lat);
@@ -267,7 +233,6 @@ const Reserv = () => {
     return R * c;
   };
 
-  // Update weight when package type changes
   useEffect(() => {
     const weights = {
       small: 2,
@@ -277,26 +242,13 @@ const Reserv = () => {
     setFormData(prev => ({ ...prev, weight: weights[formData.packageType] }));
   }, [formData.packageType]);
 
-  // Calculate cost based on weight, distance, and admin-defined price
-  const calculateCost = (calculatedDistance: number, pickup: Coordinates, delivery: Coordinates) => {
-    console.log('Calculating cost with:', {
-      pickup,
-      delivery,
-      distance: calculatedDistance,
-      weight: formData.weight,
-      urgency: formData.urgency,
-      insurance: formData.insurance,
-      pricePerKg,
-    });
-
+  const calculateCost = (calculatedDistance: number, pickup: Coordinates | null, delivery: Coordinates | null) => {
     if (!pickup || !delivery) {
-      console.warn('Coordonnées manquantes:', { pickup, delivery });
       toast.warning('Veuillez vérifier les adresses pour calculer le coût');
       return;
     }
 
     if (formData.weight <= 0) {
-      console.warn('Poids invalide:', formData.weight);
       toast.warning('Veuillez spécifier un poids valide');
       return;
     }
@@ -312,8 +264,6 @@ const Reserv = () => {
     const distanceCost = calculatedDistance * 0.5;
 
     const total = (weightCost + distanceCost) * urgencyMultiplier + insuranceCost;
-    console.log('Cost calculation:', { weightCost, distanceCost, urgencyMultiplier, insuranceCost, total });
-
     setCostEstimate(total);
     setDistance(calculatedDistance);
 
@@ -329,34 +279,22 @@ const Reserv = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('handleSubmit called with:', {
-      costEstimate,
-      selectedCourierId,
-      pickupCoords,
-      deliveryCoords,
-      formData,
-    });
-
     if (costEstimate === 0) {
-      console.warn('Coût non calculé:', costEstimate);
       toast.warning('Veuillez calculer le coût avant de confirmer la réservation');
       return;
     }
 
     if (!selectedCourierId) {
-      console.warn('Aucun coursier sélectionné:', selectedCourierId);
       toast.warning('Veuillez sélectionner un coursier');
       return;
     }
 
     if (!pickupCoords || !deliveryCoords) {
-      console.warn('Coordonnées manquantes:', { pickupCoords, deliveryCoords });
       toast.warning('Veuillez vérifier les adresses pour obtenir des coordonnées valides');
       return;
     }
 
     setIsLoading(true);
-    console.log('Submitting order...');
     try {
       const auth = getAuth();
       const user = auth.currentUser;
@@ -390,9 +328,7 @@ const Reserv = () => {
         courierId: selectedCourierId,
       };
 
-      console.log('Sending order data:', orderData);
-
-      const response = await fetch('http://localhost:5000/api/commandes/create', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/commandes/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -402,8 +338,6 @@ const Reserv = () => {
       });
 
       const result = await response.json();
-      console.log('API response:', { status: response.status, result });
-
       if (!response.ok) {
         throw new Error(result.error || 'Erreur lors de la création de la commande');
       }
@@ -413,11 +347,9 @@ const Reserv = () => {
         throw new Error('ID de commande non retourné par l\'API');
       }
 
-      console.log('Order created with ID:', orderId);
       toast.success('Réservation confirmée avec succès !');
       navigate('/suivi', { state: { orderId } });
 
-      // Réinitialiser le formulaire
       setFormData({
         pickupAddress: '',
         deliveryAddress: '',
@@ -440,15 +372,14 @@ const Reserv = () => {
       toast.error(error.message || 'Erreur lors de la réservation');
     } finally {
       setIsLoading(false);
-      console.log('Submission complete, isLoading:', false);
     }
   };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:via-gray-900 dark:to-blue-900">
       <Navbar />
-      <ThemeToggle darkMode={darkMode} toggleDarkMode={togleDarkMode} />
-      <ToastContainer position="top-right" autoClose={5000} theme={isDarkMode ? 'dark' : 'light'} />
+      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <ToastContainer position="top-right" autoClose={5000} theme={darkMode ? 'dark' : 'light'} />
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -460,7 +391,7 @@ const Reserv = () => {
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Toggle dark mode"
           >
-            {isDarkMode ? (
+            {darkMode ? (
               <Sun className="w-6 h-6 text-yellow-400" />
             ) : (
               <Moon className="w-6 h-6 text-gray-600 dark:text-gray-100" />
@@ -588,7 +519,11 @@ const Reserv = () => {
                     <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
                     <DatePicker
                       selected={formData.scheduledDate}
-                      onChange={(date: Date) => setFormData(prev => ({ ...prev, scheduledDate: date }))}
+                      onChange={(date: Date | null) => {
+                        if (date) {
+                          setFormData(prev => ({ ...prev, scheduledDate: date }));
+                        }
+                      }}
                       showTimeSelect
                       dateFormat="Pp"
                       minDate={new Date()}
@@ -677,7 +612,7 @@ const Reserv = () => {
                 <MapContainer center={[6.3572, 2.4398]} zoom={13} style={{ height: '100%', width: '100%' }}>
                   <TileLayer
                     url={
-                      isDarkMode
+                      darkMode
                         ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
                         : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
                     }
@@ -782,7 +717,6 @@ const Reserv = () => {
               className="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
             >
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Résumé du coût</h2>
-              {console.log('Rendering cost summary:', { costEstimate, distance, estimatedTime })}
               <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-300">Coût estimé :</span>
