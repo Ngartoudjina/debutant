@@ -81,12 +81,12 @@ const Propos: React.FC = () => {
     {
       title: 'Starter',
       price: '39',
-      features: ['Jusqu’à 5 livraisons/mois', 'Support standard', 'Suivi de base'],
+      features: ['Jusqu'à 5 livraisons/mois', 'Support standard', 'Suivi de base'],
     },
     {
       title: 'Pro',
       price: '79',
-      features: ['Jusqu’à 20 livraisons/mois', 'Support prioritaire', 'Suivi détaillé'],
+      features: ['Jusqu'à 20 livraisons/mois', 'Support prioritaire', 'Suivi détaillé'],
     },
     {
       title: 'Enterprise',
@@ -111,7 +111,7 @@ const Propos: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-slate-100 to-blue-50 dark:from-gray-900 dark:via-slate-900 dark:to-blue-950 text-gray-900 dark:text-white">
       <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <Navbar darkMode={darkMode} />
+      <Navbar />
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 sm:px-6 py-16 lg:py-24">
@@ -225,7 +225,7 @@ const Propos: React.FC = () => {
           >
             <h2 className="text-3xl font-bold mb-6">Notre Histoire</h2>
             <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-base sm:text-lg">
-              Dynamism Express est né de la volonté de simplifier la logistique urbaine. Fondée en 2020, notre entreprise s’est rapidement imposée comme un acteur clé dans le domaine des livraisons rapides et sécurisées. Notre mission est de connecter les gens et les entreprises grâce à une technologie innovante et un service client exceptionnel.
+              Dynamism Express est né de la volonté de simplifier la logistique urbaine. Fondée en 2020, notre entreprise s'est rapidement imposée comme un acteur clé dans le domaine des livraisons rapides et sécurisées. Notre mission est de connecter les gens et les entreprises grâce à une technologie innovante et un service client exceptionnel.
             </p>
           </motion.div>
         </div>
@@ -432,7 +432,7 @@ const Propos: React.FC = () => {
                 <Link
                   to="/contact"
                   className="block w-full text-center py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-white hover:shadow-lg transition-all"
-                  aria-label={`Choisir l’offre ${card.title}`}
+                  aria-label={`Choisir l'offre ${card.title}`}
                 >
                   Choisir cette offre
                 </Link>
@@ -442,7 +442,7 @@ const Propos: React.FC = () => {
         </div>
       </section>
 
-      <Footer darkMode={darkMode} />
+      <Footer />
     </div>
   );
 };

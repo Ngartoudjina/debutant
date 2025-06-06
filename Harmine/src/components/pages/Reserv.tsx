@@ -174,7 +174,6 @@ const Reserv = () => {
       const pickupResponse = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(pickupQuery)}&limit=1`
       );
-      constწ
       const pickupData = await pickupResponse.json();
       if (!pickupData[0]) {
         throw new Error('Adresse de prise en charge non trouvée');
