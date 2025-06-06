@@ -81,12 +81,12 @@ const Propos: React.FC = () => {
     {
       title: 'Starter',
       price: '39',
-      features: ['Jusqu'à 5 livraisons/mois', 'Support standard', 'Suivi de base'],
+      features: ['Jusqu\'à 5 livraisons/mois', 'Support standard', 'Suivi de base'],
     },
     {
       title: 'Pro',
       price: '79',
-      features: ['Jusqu'à 20 livraisons/mois', 'Support prioritaire', 'Suivi détaillé'],
+      features: ['Jusqu\'à 20 livraisons/mois', 'Support prioritaire', 'Suivi détaillé'],
     },
     {
       title: 'Enterprise',
