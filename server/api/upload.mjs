@@ -7,7 +7,6 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { getMessaging } from 'firebase-admin/messaging';
-import fs from 'fs';
 import nodemailer from 'nodemailer';
 
 // Charger les variables d'environnement
@@ -1748,7 +1747,7 @@ app.post('/api/auth/send-verification-email', async (req, res) => {
       }
 
       const actionCodeSettings = {
-        url: 'http://localhost:5173/login', // Modifier ici pour rediriger vers /login
+        url: 'https://debutant-harmine.vercel.app/login', // Modifier ici pour rediriger vers /login
         handleCodeInApp: true,
       };
 
@@ -1773,7 +1772,5 @@ app.use("/", (req, res)=>{
   res.send("Le server est lancé déjà...")
 })
 
-// Démarrer serveur
-const PORT = process.env.PORT || 5000;
 
 export default app;
