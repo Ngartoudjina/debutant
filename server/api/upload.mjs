@@ -15,7 +15,7 @@ dotenv.config({ path: '.env.local' });
 
 // Vérifier les variables d'environnement
 const requiredEnvVars = [
-  'FIREBASE_SERVICE_ACCOUNT_PATH',
+  'FIREBASE_SERVICE_ACCOUNT',
   'CLOUDINARY_CLOUD_NAME',
   'CLOUDINARY_API_KEY',
   'CLOUDINARY_API_SECRET',
