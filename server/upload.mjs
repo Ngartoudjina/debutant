@@ -95,7 +95,16 @@ const messaging = getMessaging();
 
 // Configuration Express
 const app = express();
-app.use(cors({ origin: ['http://localhost:5173'] }));
+app.use(cors({
+  origin: (origin, callback) => {
+    const allowedOrigins = ['http://localhost:5173', 'https://debutant-harmine.vercel.app/'];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Non autorisé par CORS'));
+    }
+  },
+}));
 app.use(express.json());
 
 // Configuration Multer
@@ -347,7 +356,7 @@ app.post("/api/auth/signup", async (req, res) => {
     // Envoyer l'email de vérification
     try {
       const actionCodeSettings = {
-        url: 'http://localhost:5173/login',
+        url: 'https://debutant-harmine.vercel.app/login',
         handleCodeInApp: true,
       };
       const verificationLink = await auth.generateEmailVerificationLink(email, actionCodeSettings);
