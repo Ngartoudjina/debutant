@@ -1,5 +1,22 @@
 {
-    "version" : 2,
-    "builds" : [{"src" : "./upload.mjs", "use" : "@vercel/node"}],
-    "routes" : [{"src" : "/(.*)", "dest" : "/"}]
+  "version": 2,
+  "builds": [
+    {
+      "src": "upload.mjs",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "upload.mjs"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "upload.mjs"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }

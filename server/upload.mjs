@@ -75,8 +75,7 @@ const sendVerificationEmail = async (email, verificationLink) => {
 // Initialiser Firebase Admin
 let serviceAccount;
 try {
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-  serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   if (!serviceAccount.project_id) {
     throw new Error('Service account object must contain a string "project_id" property');
   }
@@ -355,7 +354,6 @@ app.post("/api/auth/signup", async (req, res) => {
       await sendVerificationEmail(email, verificationLink);
       console.log(`Lien de vérification envoyé à ${email}`);
 
-      // TODO: Envoyer l'email via un service comme Nodemailer (voir section 4)
     } catch (emailError) {
       console.error("Erreur envoi email de vérification:", emailError);
       // Ne pas bloquer l'inscription, mais informer l'utilisateur
@@ -1278,7 +1276,7 @@ app.get('/api/settings', authenticateUser, restrictToAdmin, async (req, res) => 
       vehicleTypes: settingsData.vehicleTypes || ['moto', 'voiture', 'vélo'],
       companyInfo: settingsData.companyInfo || {
         name: 'Dynamism Express',
-        email: 'contact@dynamismexpress.com',
+        email: 'abelbeingar@gmail.com',
         address: '123 Rue de Paris, France',
       },
       adminUsers,
@@ -1321,7 +1319,7 @@ app.patch('/api/settings', authenticateUser, restrictToAdmin, async (req, res) =
     if (companyInfo) {
       settingsData.companyInfo = {
         name: companyInfo.name || 'Dynamism Express',
-        email: companyInfo.email || 'contact@dynamismexpress.com',
+        email: companyInfo.email || 'abelbeingar@gmail.com',
         address: companyInfo.address || '123 Rue de Paris, France',
       };
     }
@@ -1768,6 +1766,5 @@ app.use("/", (req, res)=>{
 
 // Démarrer serveur
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Serveur démarré sur http://localhost:${PORT}`);
-});
+
+export default app;
