@@ -164,7 +164,7 @@ export default function Footer() {
               {[
                 { to: "/", text: "Accueil" },
                 { to: "/reserv", text: "Reservation express" },
-                { to: "/suivie", text: "Suivie en temps réel" },
+                { to: "/suivi", text: "Suivie en temps réel" },
                 { to: "/entreprise", text: "Solution Professionnelle" },
               ].map((link) => (
                 <li key={link.to}>

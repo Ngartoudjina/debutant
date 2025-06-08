@@ -323,7 +323,6 @@ const SignupPage: React.FC = () => {
         }
       );
 
-      console.log("📄 Réponse inscription:", response.data);
 
       const { customToken } = response.data;
       if (!customToken) {
@@ -333,7 +332,6 @@ const SignupPage: React.FC = () => {
       const userCredential = await signInWithCustomToken(auth, customToken);
       const user = userCredential.user;
 
-      console.log("✅ Utilisateur authentifié:", user.uid);
 
       await setupFCM(user);
 

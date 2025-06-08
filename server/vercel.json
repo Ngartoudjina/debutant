@@ -1,0 +1,5 @@
+{
+    "version" : 2,
+    "builds" : [{"src" : "./upload.mjs", "use" : "@vercel/node"}],
+    "routes" : [{"src" : "/(.*)", "dest" : "/"}]
+}
