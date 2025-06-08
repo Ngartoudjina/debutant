@@ -1762,6 +1762,10 @@ app.post('/api/auth/send-verification-email', async (req, res) => {
   }
 });
 
+app.use("/", (req, res)=>{
+  res.send("Le server est lancé déjà...")
+})
+
 // Démarrer serveur
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
