@@ -5,6 +5,8 @@
 .env.production
 .env.*
 
+server/vercel.json
+
 # Clés et configurations sensibles
 config/*.json
 server/config/*.json
