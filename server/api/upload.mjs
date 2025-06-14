@@ -1768,6 +1768,10 @@ app.post('/api/auth/send-verification-email', async (req, res) => {
   }
 });
 
+app.get('/api/test', (req, res) => {
+  res.status(200).json({ message: 'Server is running', cloudinary: process.env.CLOUDINARY_CLOUD_NAME });
+});
+
 app.use("/", (req, res)=>{
   res.send("Le server est lancé déjà...")
 })
