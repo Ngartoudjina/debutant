@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npm start",
-    "start": "nodemon upload.mjs"
+    "start": "nodemon /api/upload.mjs"
   },
   "author": "ABEL BEINGAR",
   "license": "ISC",
