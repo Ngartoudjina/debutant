@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npm start",
-    "start": "node /api/upload.mjs"
+    "start": "node ./api/upload.mjs"
   },
   "author": "ABEL BEINGAR",
   "license": "ISC",
