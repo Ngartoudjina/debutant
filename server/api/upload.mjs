@@ -72,11 +72,19 @@ const sendVerificationEmail = async (email, verificationLink) => {
 };
 
 // Initialiser Firebase Admin
+// Initialiser Firebase Admin
 let serviceAccount;
 try {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    throw new Error('La variable d\'environnement FIREBASE_SERVICE_ACCOUNT est manquante.');
+  }
+
+  // Remplacer les caractères de nouvelle ligne explicites si nécessaire
+  const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT.replace(/\\n/g, '\n');
+  serviceAccount = JSON.parse(serviceAccountString);
+
   if (!serviceAccount.project_id) {
-    throw new Error('Service account object must contain a string "project_id" property');
+    throw new Error('L\'objet du compte de service doit contenir une propriété "project_id" de type string.');
   }
   console.log('Project ID:', serviceAccount.project_id);
 } catch (error) {
@@ -87,6 +95,7 @@ try {
 initializeApp({
   credential: cert(serviceAccount),
 });
+
 const db = getFirestore();
 db.settings({ ignoreUndefinedProperties: true }); // Ignore undefined values in Firestore
 const auth = getAuth();
