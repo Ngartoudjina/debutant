@@ -11,6 +11,7 @@
   "author": "ABEL BEINGAR",
   "license": "ISC",
   "dependencies": {
+    "cert": "^1.0.7",
     "cloudinary": "^2.6.1",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
