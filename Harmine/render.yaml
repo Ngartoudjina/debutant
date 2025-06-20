@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: mon-frontend
+    name: harmine
     env: static
     buildCommand: npm run build
     staticPublishPath: ./dist
