@@ -41,7 +41,7 @@ const ClientsPage: React.FC = () => {
       }
 
       console.log('📡 Envoi de la requête fetchClients avec token:', token.substring(0, 10) + '...');
-      const response = await fetch('http://localhost:5000/api/clients', {
+      const response = await fetch('https://debutant-3.onrender.com/api/clients', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -73,7 +73,7 @@ const ClientsPage: React.FC = () => {
       }
 
       console.log(`📡 Récupération des commandes pour clientId: ${clientId}`);
-      const response = await fetch(`http://localhost:5000/api/clients/${clientId}/orders`, {
+      const response = await fetch(`https://debutant-3.onrender.com/api/clients/${clientId}/orders`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -125,7 +125,7 @@ const ClientsPage: React.FC = () => {
         message: notification.message,
       });
 
-      const response = await fetch('http://localhost:5000/api/notifications/send', {
+      const response = await fetch('https://debutant-3.onrender.com/api/notifications/send', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

@@ -150,7 +150,7 @@ const ContactPage: React.FC = memo(() => {
     try {
       const userId = localStorage.getItem("userId") || "";
       const response = await axios.post(
-        "http://localhost:5000/api/contact/submit",
+        "https://debutant-3.onrender.com/api/contact/submit",
         {
           name: formData.name,
           email: formData.email,
@@ -188,7 +188,7 @@ const ContactPage: React.FC = memo(() => {
     }
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/newsletter/subscribe",
+        "https://debutant-3.onrender.com/api/newsletter/subscribe",
         {
           email: newsletterEmail,
         }

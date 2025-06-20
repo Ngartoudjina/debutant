@@ -933,7 +933,7 @@ const Suivi = () => {
         // Utiliser l'orderId si disponible, sinon récupérer la dernière commande
         let order;
         if (orderId) {
-          const response = await fetch(`${API_URL}/api/commandes/${orderId}`, {
+          const response = await fetch(`https://debutant-3.onrender.com/api/commandes/${orderId}`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -948,7 +948,7 @@ const Suivi = () => {
           }
           order = result.data;
         } else {
-          const response = await fetch(`${API_URL}/api/commandes/user`, {
+          const response = await fetch(`https://debutant-3.onrender.com/api/commandes/user`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -975,7 +975,7 @@ const Suivi = () => {
 
         // Récupérer les informations du coursier
         const courierResponse = await fetch(
-          `${API_URL}/api/truecoursiers/${order.courierId}`,
+          `https://debutant-3.onrender.com/api/truecoursiers/${order.courierId}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -1161,7 +1161,7 @@ const Suivi = () => {
         throw new Error("Utilisateur non connecté");
       }
 
-      const response = await fetch(`${API_URL}/api/feedback/submit`, {
+      const response = await fetch(`https://debutant-3.onrender.com/api/feedback/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -124,7 +124,7 @@ const LoginPage: React.FC = () => {
       }
 
       const registerPromise = axios.post(
-        "http://localhost:5000/api/notifications/register",
+        "https://debutant-3.onrender.com/api/notifications/register",
         { fcmToken },
         {
           headers: {
@@ -148,7 +148,7 @@ const LoginPage: React.FC = () => {
 
       try {
         await axios.post(
-          "http://localhost:5000/api/notifications/register",
+          "https://debutant-3.onrender.com/api/notifications/register",
           { fcmToken: null },
           {
             headers: {
@@ -183,7 +183,7 @@ const LoginPage: React.FC = () => {
       console.log(`Tentative connexion backend ${retryCount + 1}/${maxRetries + 1}`);
 
       const response = await axios.post(
-        "http://localhost:5000/api/auth/signin",
+        "https://debutant-3.onrender.com/api/auth/signin",
         { email, password },
         {
           timeout: 8000,
@@ -355,7 +355,7 @@ const LoginPage: React.FC = () => {
     try {
       const response = await Promise.race([
         axios.post(
-          "http://localhost:5000/api/auth/signin-google",
+          "https://debutant-3.onrender.com/api/auth/signin-google",
           { idToken: credentialResponse.credential },
           {
             timeout: 10000,

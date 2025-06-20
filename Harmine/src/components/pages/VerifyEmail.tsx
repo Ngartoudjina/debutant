@@ -32,7 +32,7 @@ export default function VerifyEmailPage() {
         const user = auth.currentUser;
         if (user) {
           // Mettre à jour Firestore via le backend
-          await axios.get(`http://localhost:5000/api/auth/check-email-verified/${user.uid}`);
+          await axios.get(`https://debutant-3.onrender.com/api/auth/check-email-verified/${user.uid}`);
           toast.success("Email vérifié avec succès ! Vous pouvez maintenant vous connecter.");
         } else {
           toast.success("Email vérifié avec succès ! Veuillez vous connecter.");

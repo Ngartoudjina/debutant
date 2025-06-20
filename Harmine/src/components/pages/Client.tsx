@@ -210,7 +210,7 @@ const Client: React.FC = () => {
   };
 
   const fetchUserData = async (token: string) => {
-    const response = await fetchWithRetry("http://localhost:5000/api/users/me", {
+    const response = await fetchWithRetry("https://debutant-3.onrender.com/api/users/me", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const userData = await response.json();
@@ -218,7 +218,7 @@ const Client: React.FC = () => {
   };
 
   const fetchOrders = async (token: string) => {
-    const response = await fetchWithRetry("http://localhost:5000/api/commandes/user", {
+    const response = await fetchWithRetry("https://debutant-3.onrender.com/api/commandes/user", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const ordersData = await response.json();
@@ -230,7 +230,7 @@ const Client: React.FC = () => {
   };
 
   const fetchNotifications = async (token: string) => {
-    const response = await fetchWithRetry("http://localhost:5000/api/notifications", {
+    const response = await fetchWithRetry("https://debutant-3.onrender.com/api/notifications", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const notificationsData = await response.json();
@@ -241,7 +241,7 @@ const Client: React.FC = () => {
   };
 
   const fetchInteractions = async (token: string) => {
-    const response = await fetchWithRetry("http://localhost:5000/api/interactions", {
+    const response = await fetchWithRetry("https://debutant-3.onrender.com/api/interactions", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const interactionsData = await response.json();
@@ -285,7 +285,7 @@ const Client: React.FC = () => {
         }
         const fcmToken = await requestNotificationPermission();
         if (fcmToken) {
-          const response = await fetch("http://localhost:5000/api/notifications/register", {
+          const response = await fetch("https://debutant-3.onrender.com/api/notifications/register", {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -345,7 +345,7 @@ const Client: React.FC = () => {
       const token = await getIdToken();
       setUserPreferences((prev) => ({ ...prev, primaryColor: color }));
       document.documentElement.style.setProperty("--primary-color", color);
-      const response = await fetch("http://localhost:5000/api/users/preferences", {
+      const response = await fetch("https://debutant-3.onrender.com/api/users/preferences", {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -365,7 +365,7 @@ const Client: React.FC = () => {
     try {
       const token = await getIdToken();
       setUserPreferences((prev) => ({ ...prev, dashboardLayout: newOrder }));
-      const response = await fetch("http://localhost:5000/api/users/preferences", {
+      const response = await fetch("https://debutant-3.onrender.com/api/users/preferences", {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -383,7 +383,7 @@ const Client: React.FC = () => {
 
   const fetchAvailableCouriers = async (token: string): Promise<Courier[]> => {
     try {
-      const response = await fetchWithRetry("http://localhost:5000/api/truecoursiers/available", {
+      const response = await fetchWithRetry("https://debutant-3.onrender.com/api/truecoursiers/available", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const couriersData = await response.json();
@@ -434,7 +434,7 @@ const Client: React.FC = () => {
 
       const estimatedTime = `${Math.round(distance * 2)} minutes`;
 
-      const response = await fetch("http://localhost:5000/api/commandes/create", {
+      const response = await fetch("https://debutant-3.onrender.com/api/commandes/create", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -483,7 +483,7 @@ const Client: React.FC = () => {
   const handleFeedbackSubmit = async (orderId: string, rating: number, comment: string) => {
     try {
       const token = await getIdToken();
-      const response = await fetch("http://localhost:5000/api/feedback/submit", {
+      const response = await fetch("https://debutant-3.onrender.com/api/feedback/submit", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -507,7 +507,7 @@ const Client: React.FC = () => {
   const markNotificationRead = async (notificationId: string) => {
     try {
       const token = await getIdToken();
-      const response = await fetch("http://localhost:5000/api/notifications/mark-read", {
+      const response = await fetch("https://debutant-3.onrender.com/api/notifications/mark-read", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -531,7 +531,7 @@ const Client: React.FC = () => {
       const token = await getIdToken();
       const unreadNotifications = notifications.filter((notif) => !notif.read).map((notif) => notif.id);
       if (unreadNotifications.length === 0) return;
-      const response = await fetch("http://localhost:5000/api/notifications/mark-read", {
+      const response = await fetch("https://debutant-3.onrender.com/api/notifications/mark-read", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -553,7 +553,7 @@ const Client: React.FC = () => {
   const dismissNotification = async (notificationId: string) => {
     try {
       const token = await getIdToken();
-      const response = await fetch("http://localhost:5000/api/notifications/mark-read", {
+      const response = await fetch("https://debutant-3.onrender.com/api/notifications/mark-read", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -573,7 +573,7 @@ const Client: React.FC = () => {
   const clearAllNotifications = async () => {
     try {
       const token = await getIdToken();
-      const response = await fetch("http://localhost:5000/api/notifications/mark-read", {
+      const response = await fetch("https://debutant-3.onrender.com/api/notifications/mark-read", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -604,7 +604,7 @@ const Client: React.FC = () => {
 
     try {
       const token = await getIdToken();
-      const response = await fetch("http://localhost:5000/api/contact/submit", {
+      const response = await fetch("https://debutant-3.onrender.com/api/contact/submit", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

@@ -52,7 +52,7 @@ const Rapport: React.FC = () => {
       }
 
       // Récupérer les commandes
-      const ordersResponse = await fetch('http://localhost:5000/api/commandes', {
+      const ordersResponse = await fetch('https://debutant-3.onrender.com/api/commandes', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -68,7 +68,7 @@ const Rapport: React.FC = () => {
       setOrders(fetchedOrders);
 
       // Récupérer les clients
-      const clientsResponse = await fetch('http://localhost:5000/api/clients', {
+      const clientsResponse = await fetch('https://debutant-3.onrender.com/api/clients', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

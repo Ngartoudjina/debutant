@@ -25,7 +25,7 @@ const fetchCouriers = async (collection: 'coursiers' | 'truecoursiers'): Promise
   }
 
   const endpoint = collection === 'coursiers' ? '/api/coursiers' : '/api/truecoursiers';
-  const response = await fetch(`http://localhost:5000${endpoint}`, {
+  const response = await fetch(`https://debutant-3.onrender.com${endpoint}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -125,7 +125,7 @@ const CouriersPage: React.FC = () => {
 
       console.log(`Adding courier to ${collection} with FormData:`, Object.fromEntries(formData));
       const endpoint = collection === 'coursiers' ? '/api/coursiers/createCourier' : '/api/coursiers/createtrueCourier';
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`https://debutant-3.onrender.com${endpoint}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -185,7 +185,7 @@ const CouriersPage: React.FC = () => {
 
       console.log(`Updating courier in ${collection} with FormData:`, Object.fromEntries(formData));
       const endpoint = collection === 'coursiers' ? `/api/coursiers/${courierId}` : `/api/truecoursiers/${courierId}`;
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`https://debutant-3.onrender.com${endpoint}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -235,7 +235,7 @@ const CouriersPage: React.FC = () => {
       }
 
       const endpoint = collection === 'coursiers' ? `/api/coursiers/${courierId}` : `/api/truecoursiers/${courierId}`;
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`https://debutant-3.onrender.com${endpoint}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -277,7 +277,7 @@ const CouriersPage: React.FC = () => {
       }
 
       const endpoint = collection === 'coursiers' ? `/api/coursiers/${courierId}` : `/api/truecoursiers/${courierId}`;
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`https://debutant-3.onrender.com${endpoint}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

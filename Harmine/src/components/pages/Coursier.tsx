@@ -336,7 +336,7 @@ const Courier: React.FC = () => {
   
       // Envoyer la requête directement à l'API principale avec tous les fichiers
       console.log("Envoi des données à createCourier");
-      const response = await fetch("http://localhost:5000/api/coursiers/createCourier", {
+      const response = await fetch("https://debutant-3.onrender.com/api/coursiers/createCourier", {
         method: "POST",
         body: formDataToSend,
         headers: {
