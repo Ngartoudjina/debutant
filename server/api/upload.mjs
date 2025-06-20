@@ -1792,5 +1792,11 @@ app.use("/", (req, res)=>{
   res.send("Le server est lancé déjà...")
 })
 
+// Démarrer le serveur
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`Serveur démarré sur le port ${port}`);
+});
+
 
 export default app;
