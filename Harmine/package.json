@@ -4,9 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsc && vite build && echo '/*    /index.html   200' > dist/_redirects",
+    "build:win": "tsc && vite build && echo /*    /index.html   200 > dist/_redirects"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
