@@ -6,11 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview""scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
     "preview": "vite preview"
-  }
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
