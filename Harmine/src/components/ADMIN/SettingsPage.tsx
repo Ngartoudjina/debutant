@@ -80,7 +80,7 @@ const SettingsPage: React.FC = () => {
         throw new Error("Aucun token d'authentification trouvé");
       }
 
-      const response = await fetch("https://debutant-3.onrender.com/api/settings", {
+      const response = await fetch("https://debutant.onrender.com/api/settings", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -128,7 +128,7 @@ const SettingsPage: React.FC = () => {
         token.substring(0, 10) + "..."
       );
 
-      const response = await fetch("https://debutant-3.onrender.com/api/settings", {
+      const response = await fetch("https://debutant.onrender.com/api/settings", {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,

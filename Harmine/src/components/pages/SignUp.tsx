@@ -83,7 +83,7 @@ const SignupPage: React.FC = () => {
   const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
       const response = await axios.post(
-        "https://debutant-3.onrender.com/api/auth/check-email",
+        "https://debutant.onrender.com/api/auth/check-email",
         { email },
         { headers: { "Content-Type": "application/json" }, timeout: 5000 }
       );
@@ -207,7 +207,7 @@ const SignupPage: React.FC = () => {
         console.log("📤 Données envoyées:", requestData);
 
         const response = await axios.post(
-          "https://debutant-3.onrender.com/api/notifications/register",
+          "https://debutant.onrender.com/api/notifications/register",
           requestData,
           {
             headers: {
@@ -235,7 +235,7 @@ const SignupPage: React.FC = () => {
         try {
           const idToken = await user.getIdToken(true);
           await axios.post(
-            "https://debutant-3.onrender.com/api/notifications/register",
+            "https://debutant.onrender.com/api/notifications/register",
             {
               fcmToken: null,
               userId: user.uid,
@@ -308,7 +308,7 @@ const SignupPage: React.FC = () => {
 
       console.log("🌐 Envoi requête inscription...");
       const response = await axios.post(
-        "https://debutant-3.onrender.com/api/auth/signup",
+        "https://debutant.onrender.com/api/auth/signup",
         {
           firstName: formData.firstName,
           lastName: formData.lastName,

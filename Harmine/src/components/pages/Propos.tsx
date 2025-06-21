@@ -102,9 +102,9 @@ const Propos: React.FC = () => {
   ];
 
   const socialLinks: SocialLink[] = [
-    { Icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
-    { Icon: FaWhatsapp, href: 'https://wa.me/1234567890', label: 'WhatsApp' },
-    { Icon: CiLinkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
+    { Icon: Facebook, href: 'https://www.facebook.com/abel.beingar?locale=fr_FR', label: 'Facebook' },
+    { Icon: FaWhatsapp, href: 'https://wa.me/59334483', label: 'WhatsApp' },
+    { Icon: CiLinkedin, href: 'https://www.linkedin.com/in/abel-beingar-18a3b8304/', label: 'LinkedIn' },
     { Icon: FaInstagram, href: 'https://instagram.com', label: 'Instagram' },
   ];
 

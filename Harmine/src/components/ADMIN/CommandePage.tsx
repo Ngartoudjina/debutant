@@ -88,7 +88,7 @@ const CommandePage: React.FC = () => {
 
   // Constantes
   const MAX_RETRIES = 2;
-  const API_BASE_URL = 'https://debutant-3.onrender.com/api';
+  const API_BASE_URL = 'https://debutant.onrender.com/api';
 
   // Fonction utilitaire pour obtenir le token
   const getAuthToken = (): string | null => {

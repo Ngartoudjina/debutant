@@ -39,7 +39,7 @@ export default function Footer() {
 
     try {
       const response = await axios.post(
-        process.env.REACT_APP_API_URL || "https://debutant-3.onrender.com/api/newsletter/subscribe",
+        process.env.REACT_APP_API_URL || "https://debutant.onrender.com/api/newsletter/subscribe",
         { email }
       );
       toast.success(response.data.message, {
@@ -64,7 +64,7 @@ export default function Footer() {
 
   const socialLinks: SocialLink[] = [
     { href: "https://www.facebook.com/abel.beingar?locale=fr_FR", Icon: FaFacebook },
-    { href: "https://linkedin.com", Icon: FaLinkedin },
+    { href: "https://www.linkedin.com/in/abel-beingar-18a3b8304/", Icon: FaLinkedin },
     { href: "https://instagram.com", Icon: FaInstagram },
     { href: "https://twitter.com", Icon: FaTwitter },
     { href: "https://youtube.com", Icon: FaYoutube },
