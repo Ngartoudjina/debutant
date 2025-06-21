@@ -112,7 +112,7 @@ const messaging = getMessaging();
 const app = express();
 app.use(cors({
   origin: (origin, callback) => {
-    const allowedOrigins = ['http://localhost:5173', 'https://debutant-harmine.vercel.app/'];
+    const allowedOrigins = ['http://localhost:5173', 'https://debutant-011.onrender.com/'];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -371,7 +371,7 @@ app.post("/api/auth/signup", async (req, res) => {
     // Envoyer l'email de vérification
     try {
       const actionCodeSettings = {
-        url: 'https://debutant-harmine.vercel.app/login',
+        url: 'https://debutant-011.onrender.com/login',
         handleCodeInApp: true,
       };
       const verificationLink = await auth.generateEmailVerificationLink(email, actionCodeSettings);
@@ -1763,7 +1763,7 @@ app.post('/api/auth/send-verification-email', async (req, res) => {
       }
 
       const actionCodeSettings = {
-        url: 'https://debutant-harmine.vercel.app/login', // Modifier ici pour rediriger vers /login
+        url: 'https://debutant-011.onrender.com', // Modifier ici pour rediriger vers /login
         handleCodeInApp: true,
       };
 
