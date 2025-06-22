@@ -1788,6 +1788,27 @@ app.get('/api/test', (req, res) => {
   res.status(200).json({ message: 'Server is running', cloudinary: process.env.CLOUDINARY_CLOUD_NAME });
 });
 
+app.post('/api/auth/check-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email requis' });
+    }
+    try {
+      await auth.getUserByEmail(email);
+      return res.status(200).json({ exists: true });
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        return res.status(200).json({ exists: false });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Erreur vérification email:', error);
+    res.status(500).json({ error: 'Erreur lors de la vérification de l\'email', details: error.message });
+  }
+});
+
 app.use("/", (req, res)=>{
   res.send("Le server est lancé déjà...")
 })
@@ -1797,14 +1818,6 @@ const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`Serveur démarré sur le port ${port}`);
 });
-
-app.use(cors({
-  origin: [
-    'https://debutant-011.onrender.com',
-    'http://localhost:3000' // pour le développement
-  ],
-  credentials: true
-}));
 
 
 export default app;

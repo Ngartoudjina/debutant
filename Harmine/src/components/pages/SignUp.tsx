@@ -319,7 +319,7 @@ const SignupPage: React.FC = () => {
         },
         {
           headers: { "Content-Type": "application/json" },
-          timeout: 10000,
+          timeout: 15000,
         }
       );
 
