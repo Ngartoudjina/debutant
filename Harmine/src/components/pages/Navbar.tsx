@@ -21,7 +21,8 @@ import { toast } from 'react-toastify';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { auth, db } from '../../../firebaseConfig';
-import { Notification } from '../types/notification'
+import { Notification } from '../types/notification';
+
 // Interfaces
 interface ListItemProps extends React.ComponentPropsWithoutRef<'a'> {
   title: string;
@@ -35,7 +36,6 @@ interface ComponentItem {
   description: string;
   icon?: React.ReactNode;
 }
-
 
 const components: ComponentItem[] = [
   {
@@ -400,16 +400,20 @@ export default function Navbar(): JSX.Element {
 
       {/* Mobile menu */}
       <div
-        className={`fixed inset-0 bg-white dark:bg-gray-900 z-[60] transition-all duration-300 ease-in-out ${
+        className={`fixed inset-0 z-[60] transition-all duration-200 ease-in-out md:hidden ${
           isMenuOpen
-            ? 'opacity-100 translate-x-0 visible'
+            ? 'opacity-100 translate-x-0'
             : 'opacity-0 translate-x-full invisible'
-        } md:hidden`}
-        style={{ height: isMenuOpen ? '100vh' : '0' }}
+        }`}
       >
-        <div className="h-full overflow-y-auto px-4 pt-20 pb-6 bg-white dark:bg-gray-900">
+        {/* Fond semi-transparent */}
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={toggleMenu}
+        ></div>
+        <div className="relative h-full max-w-md ml-auto bg-white dark:bg-gray-900 overflow-y-auto pt-24 pb-6 px-6">
           <button
-            className="absolute top-6 right-4 p-2 focus:outline-none"
+            className="absolute top-4 right-6 p-3 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors z-[70]"
             onClick={toggleMenu}
             aria-label="Close menu"
           >
@@ -426,118 +430,133 @@ export default function Navbar(): JSX.Element {
             </svg>
           </button>
 
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem
-              value="services"
-              className="border-b border-gray-200 dark:border-gray-700"
-            >
-              <AccordionTrigger className="text-xl font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
-                Services
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4">
-                <a
-                  href="/reserv"
-                  className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                >
-                  Réservation express
-                </a>
-                <a
-                  href="/suivi"
-                  className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                >
-                  Suivi en temps réel
-                </a>
-                <a
-                  href="/entreprise"
-                  className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                >
-                  Solutions entreprise
-                </a>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem
-              value="resources"
-              className="border-b border-gray-200 dark:border-gray-700"
-            >
-              <AccordionTrigger className="text-xl font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
-                Ressources
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4">
-                {components.map((component) => (
+          <div className="space-y-6">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem
+                value="services"
+                className="border-b border-gray-200 dark:border-gray-700"
+              >
+                <AccordionTrigger className="text-xl font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
+                  Services
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4">
                   <a
-                    key={component.title}
-                    href={component.href}
+                    href="/reserv"
                     className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
-                    <span className="flex items-center gap-2">
-                      {component.icon}
-                      {component.title}
-                    </span>
+                    Réservation express
                   </a>
-                ))}
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem
-              value="courier"
-              className="border-b border-gray-200 dark:border-gray-700"
-            >
-              <AccordionTrigger className="text-xl font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
-                Devenir coursier
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="p-4 bg-blue-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                    Rejoignez notre équipe de coursiers et profitez de :
-                  </p>
-                  <ul className="space-y-2 mb-4 text-sm text-gray-600 dark:text-gray-300">
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                      Horaires flexibles
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                      Revenus attractifs
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                      Support 24/7
-                    </li>
-                  </ul>
                   <a
-                    href="/coursier"
-                    className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                    href="/suivi"
+                    className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
-                    S'inscrire comme coursier
+                    Suivi en temps réel
                   </a>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+                  <a
+                    href="/entreprise"
+                    className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    Solutions entreprise
+                  </a>
+                </AccordionContent>
+              </AccordionItem>
 
-          <div className="mt-6 space-y-4">
-            <a
-              href="/login"
-              className="block w-full text-center bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Se connecter
-            </a>
-            <button
-              className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-md hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
-              onClick={handleNotificationsClick}
-              aria-label="Ouvrir les notifications"
-            >
-              <span className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                Notifications
-              </span>
-              {notificationsCount > 0 && (
-                <Badge variant="default" className="bg-red-500">
-                  {notificationsCount}
-                </Badge>
-              )}
-            </button>
+              <AccordionItem
+                value="resources"
+                className="border-b border-gray-200 dark:border-gray-700"
+              >
+                <AccordionTrigger className="text-xl font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
+                  Ressources
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4">
+                  {components.map((component) => (
+                    <a
+                      key={component.title}
+                      href={component.href}
+                      className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      <span className="flex items-center gap-2">
+                        {component.icon}
+                        {component.title}
+                      </span>
+                    </a>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem
+                value="courier"
+                className="border-b border-gray-200 dark:border-gray-700"
+              >
+                <AccordionTrigger className="text-xl font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
+                  Devenir coursier
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="p-4 bg-blue-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                      Rejoignez notre équipe de coursiers et profitez de :
+                    </p>
+                    <ul className="space-y-2 mb-4 text-sm text-gray-600 dark:text-gray-300">
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                        Horaires flexibles
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                        Revenus attractifs
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                        Support 24/7
+                      </li>
+                    </ul>
+                    <a
+                      href="/coursier"
+                      className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      S'inscrire comme coursier
+                    </a>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            <div className="space-y-4">
+              <a
+                href="/login"
+                className="block w-full text-center bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Se connecter
+              </a>
+              <button
+                className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-md hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={handleNotificationsClick}
+                aria-label="Ouvrir les notifications"
+              >
+                <span className="flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                  Notifications
+                </span>
+                {notificationsCount > 0 && (
+                  <Badge variant="default" className="bg-red-500">
+                    {notificationsCount}
+                  </Badge>
+                )}
+              </button>
+              <button
+                onClick={toggleDarkMode}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-md hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  {isDarkMode ? (
+                    <Sun className="h-5 w-5 text-yellow-400" />
+                  ) : (
+                    <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                  )}
+                  {isDarkMode ? 'Mode clair' : 'Mode sombre'}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
