@@ -100,7 +100,7 @@ export const setupFCM = async (user: FirebaseUser) => {
     const idToken = await user.getIdToken(true);
     console.log("🌐 Envoi token pour userId:", user.uid);
     await axios.post(
-      "http://localhost:5000/api/notifications/register",
+      "https://debutant.onrender.com/api/notifications/register",
       {
         fcmToken: fcmToken || null,
         userId: user.uid,
@@ -126,7 +126,7 @@ export const setupFCM = async (user: FirebaseUser) => {
       try {
         const idToken = await user.getIdToken(true);
         await axios.post(
-          "http://localhost:5000/api/notifications/register",
+          "https://debutant.onrender.com/api/notifications/register",
           {
             fcmToken: null,
             userId: user.uid,
