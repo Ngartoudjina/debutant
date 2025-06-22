@@ -302,91 +302,52 @@ const notifyAdmins = async (title, body, type = 'GENERAL', data = {}) => {
 };
 
 // Route inscription
-app.post("/api/auth/signup", async (req, res) => {
+app.post('/api/auth/signup', async (req, res) => {
   try {
     const { firstName, lastName, email, phone, address, password } = req.body;
-
-    // Validation des champs
+    // Validation des données
     if (!firstName || !lastName || !email || !phone || !address || !password) {
-      return res.status(400).json({ error: "Tous les champs sont requis" });
+      return res.status(400).json({ error: 'Tous les champs sont requis' });
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: "Email invalide" });
+      return res.status(400).json({ error: 'Email invalide' });
     }
-
-    if (!/^[1-9]\d{1,14}$/.test(phone)) {
-      return res.status(400).json({ error: "Numéro de téléphone invalide (ex: +33612345678)" });
-    }
-
     if (password.length < 6) {
-      return res.status(400).json({ error: "Le mot de passe doit contenir au moins 6 caractères" });
+      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
     }
-
-    // Vérifier si l'email existe déjà
-    try {
-      const userRecord = await auth.getUserByEmail(email);
-      return res.status(409).json({ error: "Cet email est déjà utilisé" });
-    } catch (error) {
-      if (error.code !== 'auth/user-not-found') {
-        throw error;
-      }
+    if (phone.length < 8) {
+      return res.status(400).json({ error: 'Numéro de téléphone invalide' });
     }
 
     // Créer l'utilisateur dans Firebase Auth
-    let userRecord;
-    try {
-      userRecord = await auth.createUser({
-        email,
-        password,
-        displayName: `${firstName} ${lastName}`,
-        emailVerified: false, // Par défaut, l'email n'est pas vérifié
-      });
-      console.log(`Utilisateur créé dans Auth: ${userRecord.uid}`);
-    } catch (authError) {
-      console.error("Erreur Auth:", authError);
-      throw new Error(`Erreur création utilisateur Auth: ${authError.message}`);
-    }
+    const userRecord = await auth.createUser({ email, password });
+    const customToken = await auth.createCustomToken(userRecord.uid);
 
-    // Enregistrer les données dans Firestore
-    try {
-      await db.collection("users").doc(userRecord.uid).set({
-        firstName,
-        lastName,
-        email,
-        phone,
-        address,
-        role: "client",
-        emailVerified: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-      console.log(`Utilisateur enregistré dans Firestore: ${userRecord.uid}`);
-    } catch (firestoreError) {
-      console.error("Erreur Firestore:", firestoreError);
-      await auth.deleteUser(userRecord.uid);
-      throw new Error(`Erreur enregistrement Firestore: ${firestoreError.message}`);
-    }
+    // Générer le lien de vérification
+    const verificationLink = await auth.generateEmailVerificationLink(email);
 
     // Envoyer l'email de vérification
-    try {
-      const actionCodeSettings = {
-        url: 'https://debutant-011.onrender.com/login',
-        handleCodeInApp: true,
-      };
-      const verificationLink = await auth.generateEmailVerificationLink(email, actionCodeSettings);
-      await sendVerificationEmail(email, verificationLink);
-      console.log(`Lien de vérification envoyé à ${email}`);
+    await sendVerificationEmail(email, verificationLink, firstName);
 
-    } catch (emailError) {
-      console.error("Erreur envoi email de vérification:", emailError);
-      // Ne pas bloquer l'inscription, mais informer l'utilisateur
-    }
+    // Enregistrer les données utilisateur dans Firestore
+    await db.collection('users').doc(userRecord.uid).set({
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      role: 'client',
+      createdAt: new Date().toISOString(),
+    });
 
-    res.status(200).json({ message: "Inscription réussie. Veuillez vérifier votre email." });
+    // Renvoyer customToken dans la réponse
+    res.status(200).json({
+      message: "Inscription réussie. Veuillez vérifier votre email.",
+      customToken // Ajout du customToken
+    });
   } catch (error) {
-    console.error("Erreur inscription:", error.message, error.stack);
-    res.status(500).json({ error: "Erreur lors de l'inscription", details: error.message });
+    console.error('Erreur lors de l\'inscription:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'inscription', details: error.message });
   }
 });
 
