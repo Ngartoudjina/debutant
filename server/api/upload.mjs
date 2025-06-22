@@ -1798,5 +1798,13 @@ app.listen(port, () => {
   console.log(`Serveur démarré sur le port ${port}`);
 });
 
+app.use(cors({
+  origin: [
+    'https://debutant-011.onrender.com',
+    'http://localhost:3000' // pour le développement
+  ],
+  credentials: true
+}));
+
 
 export default app;
