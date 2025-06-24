@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -8,13 +8,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 import {
   Package,
   RefreshCw,
@@ -22,16 +33,21 @@ import {
   ChevronUp,
   Eye,
   Edit,
+  Search,
+  Filter,
   Trash2,
-} from 'lucide-react';
-import { getAuth } from 'firebase/auth';
+} from "lucide-react";
+import { getAuth } from "firebase/auth";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Types et interfaces
 enum OrderStatus {
-  PENDING = 'PENDING',
-  IN_PROGRESS = 'IN_PROGRESS',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
+  PENDING = "PENDING",
+  IN_PROGRESS = "IN_PROGRESS",
+  DELIVERED = "DELIVERED",
+  CANCELLED = "CANCELLED",
 }
 
 interface Order {
@@ -58,7 +74,6 @@ interface ApiError {
   error: string;
 }
 
-// Types pour les réponses de l'API
 interface RawOrderData {
   id?: string;
   clientName?: string;
@@ -74,31 +89,32 @@ interface RawCourierData {
   name?: string;
 }
 
-type FilterStatus = 'all' | OrderStatus;
-type FilterCourier = 'all' | 'none' | string;
+type FilterStatus = "all" | OrderStatus;
+type FilterCourier = "all" | "none" | string;
 
 const CommandePage: React.FC = () => {
-  // États avec typage strict
+  // États
   const [orders, setOrders] = useState<Order[]>([]);
   const [couriers, setCouriers] = useState<Courier[]>([]);
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-  const [filterCourier, setFilterCourier] = useState<FilterCourier>('all');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [filterCourier, setFilterCourier] = useState<FilterCourier>("all");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Constantes
   const MAX_RETRIES = 2;
-  const API_BASE_URL = 'https://debutant.onrender.com/api';
+  const API_BASE_URL = "https://debutant.onrender.com/api";
 
   // Fonction utilitaire pour obtenir le token
   const getAuthToken = (): string | null => {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem("authToken");
   };
 
   // Fonction utilitaire pour les headers d'authentification
   const getAuthHeaders = (token: string): HeadersInit => ({
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
   });
 
   // Fonction pour gérer les erreurs d'API
@@ -107,79 +123,65 @@ const CommandePage: React.FC = () => {
     try {
       errorData = await response.json();
     } catch {
-      errorData = { error: 'Erreur de communication avec le serveur' };
+      errorData = { error: "Erreur de communication avec le serveur" };
     }
-    throw new Error(errorData.error || 'Erreur inconnue');
+    toast.error(errorData.error || "Erreur inconnue");
+    throw new Error(errorData.error || "Erreur inconnue");
   };
 
   // Fonction pour récupérer les commandes avec retry
-  const fetchOrders = useCallback(async (retryCount: number = 0): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const token = getAuthToken();
-      
-      if (!token) {
-        throw new Error("Aucun token d'authentification trouvé");
-      }
-
-      const response = await fetch(`${API_BASE_URL}/commandes`, {
-        headers: getAuthHeaders(token),
-      });
-
-      console.log('Fetch Orders Response Status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Erreur de communication' }));
-        console.log('Fetch Orders Error Data:', errorData);
-        
-        // Gestion du retry pour les tokens invalides
-        if (errorData.error === 'Token invalide' && retryCount < MAX_RETRIES) {
-          const auth = getAuth();
-          if (auth.currentUser) {
-            console.log('Tentative de rafraîchissement du token, essai:', retryCount + 1);
-            const newToken = await auth.currentUser.getIdToken(true);
-            console.log('New Token:', newToken);
-            localStorage.setItem('authToken', newToken);
-            return fetchOrders(retryCount + 1);
-          } else {
-            throw new Error('Utilisateur non connecté');
-          }
+  const fetchOrders = useCallback(
+    async (retryCount: number = 0): Promise<void> => {
+      try {
+        setIsLoading(true);
+        const token = getAuthToken();
+        if (!token) {
+          throw new Error("Aucun token d'authentification trouvé");
         }
-        
-        throw new Error(errorData.error || 'Erreur lors de la récupération des commandes');
-      }
 
-      const data: ApiResponse<RawOrderData[]> = await response.json();
-      console.log('Raw Orders Data:', data.data);
-      
-      const mappedOrders: Order[] = data.data.map((order: RawOrderData): Order => ({
-        id: order.id || 'unknown',
-        clientName: order.clientName || 'Inconnu',
-        address: order.address || 'Inconnue',
-        status: order.status || OrderStatus.PENDING,
-        date: order.date || new Date().toISOString(),
-        amount: order.amount || 0,
-        courierId: order.courierId,
-      }));
-      
-      console.log('Mapped Orders:', mappedOrders);
-      setOrders(mappedOrders);
-      toast.success('Commandes chargées avec succès');
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du chargement des commandes';
-      console.error('Erreur lors du chargement des commandes:', error);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+        const response = await fetch(`${API_BASE_URL}/commandes`, {
+          headers: getAuthHeaders(token),
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 && retryCount < MAX_RETRIES) {
+            const auth = getAuth();
+            if (auth.currentUser) {
+              const newToken = await auth.currentUser.getIdToken(true);
+              localStorage.setItem("authToken", newToken);
+              return fetchOrders(retryCount + 1);
+            }
+            throw new Error("Utilisateur non connecté");
+          }
+          await handleApiError(response);
+        }
+
+        const data: ApiResponse<RawOrderData[]> = await response.json();
+        const mappedOrders: Order[] = data.data.map(
+          (order: RawOrderData): Order => ({
+            id: order.id || "unknown",
+            clientName: order.clientName || "Inconnu",
+            address: order.address || "Inconnue",
+            status: order.status || OrderStatus.PENDING,
+            date: order.date || new Date().toISOString(),
+            amount: order.amount || 0,
+            courierId: order.courierId,
+          })
+        );
+        setOrders(mappedOrders);
+      } catch (error) {
+        // Erreur déjà affichée via toast
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   // Fonction pour récupérer les coursiers
   const fetchCouriers = useCallback(async (): Promise<void> => {
     try {
       const token = getAuthToken();
-      
       if (!token) {
         throw new Error("Aucun token d'authentification trouvé");
       }
@@ -188,27 +190,20 @@ const CommandePage: React.FC = () => {
         headers: getAuthHeaders(token),
       });
 
-      console.log('Fetch Couriers Response Status:', response.status);
-      
       if (!response.ok) {
         await handleApiError(response);
       }
 
       const data: ApiResponse<RawCourierData[]> = await response.json();
-      console.log('Raw Couriers Data:', data.data);
-      
-      const mappedCouriers: Courier[] = data.data.map((courier: RawCourierData): Courier => ({
-        id: courier.id || 'unknown',
-        name: courier.name || 'Inconnu',
-      }));
-      
-      console.log('Mapped Couriers:', mappedCouriers);
+      const mappedCouriers: Courier[] = data.data.map(
+        (courier: RawCourierData): Courier => ({
+          id: courier.id || "unknown",
+          name: courier.name || "Inconnu",
+        })
+      );
       setCouriers(mappedCouriers);
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du chargement des coursiers';
-      console.error('Erreur lors du chargement des coursiers:', error);
-      toast.error(errorMessage);
+      // Erreur déjà affichée via toast
     }
   }, []);
 
@@ -219,22 +214,22 @@ const CommandePage: React.FC = () => {
   }, [fetchOrders, fetchCouriers]);
 
   // Fonction pour mettre à jour le statut d'une commande
-  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus): Promise<void> => {
+  const updateOrderStatus = async (
+    orderId: string,
+    newStatus: OrderStatus
+  ): Promise<void> => {
     try {
       const token = getAuthToken();
-      
       if (!token) {
         throw new Error("Aucun token d'authentification trouvé");
       }
 
       const response = await fetch(`${API_BASE_URL}/commandes/${orderId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: getAuthHeaders(token),
         body: JSON.stringify({ status: newStatus }),
       });
 
-      console.log(`Update Order ${orderId} Response Status:`, response.status);
-      
       if (!response.ok) {
         await handleApiError(response);
       }
@@ -244,13 +239,9 @@ const CommandePage: React.FC = () => {
           order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
-      
       toast.success(`Commande ${orderId} mise à jour avec succès`);
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour de la commande';
-      console.error(`Erreur lors de la mise à jour de la commande ${orderId}:`, error);
-      toast.error(errorMessage);
+      // Erreur déjà affichée via toast
     }
   };
 
@@ -258,29 +249,25 @@ const CommandePage: React.FC = () => {
   const cancelOrder = async (orderId: string): Promise<void> => {
     try {
       const token = getAuthToken();
-      
       if (!token) {
         throw new Error("Aucun token d'authentification trouvé");
       }
 
       const response = await fetch(`${API_BASE_URL}/commandes/${orderId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: getAuthHeaders(token),
       });
 
-      console.log(`Cancel Order ${orderId} Response Status:`, response.status);
-      
       if (!response.ok) {
         await handleApiError(response);
       }
 
-      setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
+      setOrders((prevOrders) =>
+        prevOrders.filter((order) => order.id !== orderId)
+      );
       toast.success(`Commande ${orderId} annulée avec succès`);
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'annulation de la commande';
-      console.error(`Erreur lors de l'annulation de la commande ${orderId}:`, error);
-      toast.error(errorMessage);
+      // Erreur déjà affichée via toast
     }
   };
 
@@ -299,37 +286,48 @@ const CommandePage: React.FC = () => {
 
   // Filtrage des commandes
   const filteredOrders = orders.filter((order) => {
-    const statusMatch = filterStatus === 'all' || order.status === filterStatus;
-    const courierMatch = 
-      filterCourier === 'all' || 
-      (filterCourier === 'none' && !order.courierId) ||
+    const statusMatch = filterStatus === "all" || order.status === filterStatus;
+    const courierMatch =
+      filterCourier === "all" ||
+      (filterCourier === "none" && !order.courierId) ||
       order.courierId === filterCourier;
-    
-    return statusMatch && courierMatch;
+    const searchMatch =
+      searchQuery === "" ||
+      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.address.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return statusMatch && courierMatch && searchMatch;
   });
 
   // Fonction pour obtenir le nom du coursier
   const getCourierName = (courierId?: string): string => {
-    if (!courierId) return 'Non assigné';
+    if (!courierId) return "Non assigné";
     const courier = couriers.find((c) => c.id === courierId);
-    return courier?.name || 'Inconnu';
+    return courier?.name || "Inconnu";
   };
 
   // Fonction pour obtenir la variante du badge selon le statut
-  const getBadgeVariant = (status: OrderStatus): "default" | "destructive" | "secondary" => {
+  const getBadgeVariant = (
+    status: OrderStatus
+  ): "default" | "destructive" | "secondary" | "outline" => {
     switch (status) {
       case OrderStatus.DELIVERED:
-        return 'default';
+        return "default";
       case OrderStatus.CANCELLED:
-        return 'destructive';
+        return "destructive";
+      case OrderStatus.PENDING:
+        return "outline";
       default:
-        return 'secondary';
+        return "secondary";
     }
   };
 
   // Fonction pour déterminer le prochain statut
   const getNextStatus = (currentStatus: OrderStatus): OrderStatus => {
-    return currentStatus === OrderStatus.PENDING ? OrderStatus.IN_PROGRESS : OrderStatus.DELIVERED;
+    return currentStatus === OrderStatus.PENDING
+      ? OrderStatus.IN_PROGRESS
+      : OrderStatus.DELIVERED;
   };
 
   // Fonction pour vérifier si une commande peut être mise à jour
@@ -342,93 +340,126 @@ const CommandePage: React.FC = () => {
     return status !== OrderStatus.CANCELLED;
   };
 
-  console.log('Filtered Orders:', filteredOrders);
-
   // Rendu de la table
   const renderTable = (): JSX.Element => {
     return (
       <>
         {/* Affichage en tableau pour grands écrans */}
-        <div className="hidden md:block overflow-x-auto">
-          <Table>
-            <TableCaption className="mb-2">Liste des commandes</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead className="hidden lg:table-cell">Adresse</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Coursier</TableHead>
-                <TableHead className="hidden lg:table-cell">Date</TableHead>
-                <TableHead>Montant</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+        <div className="hidden lg:block">
+          <Table className="min-w-full rounded-lg overflow-hidden">
+            <TableCaption className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+              {filteredOrders.length} commande(s) trouvée(s)
+            </TableCaption>
+            <TableHeader className="bg-gray-100 dark:bg-gray-800/50">
+              <TableRow className="border-b border-gray-200 dark:border-gray-700">
+                <TableHead className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">ID</TableHead>
+                <TableHead className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Client</TableHead>
+                <TableHead className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Adresse</TableHead>
+                <TableHead className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Statut</TableHead>
+                <TableHead className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Coursier</TableHead>
+                <TableHead className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Date</TableHead>
+                <TableHead className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Montant</TableHead>
+                <TableHead className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6 text-gray-500 dark:text-gray-400">
-                    Aucune commande disponible
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    {isLoading ? (
+                      <div className="flex justify-center items-center gap-2">
+                        <Skeleton className="h-5 w-48 rounded-md" />
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 dark:text-gray-400 text-sm">
+                        Aucune commande correspondante
+                      </span>
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{order.clientName}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{order.address}</TableCell>
-                    <TableCell>
-                      <Badge variant={getBadgeVariant(order.status)}>
-                        {order.status}
+                  <TableRow
+                    key={order.id}
+                    className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors duration-200"
+                  >
+                    <TableCell className="px-4 py-3 font-medium text-sm text-gray-900 dark:text-gray-100">{order.id}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm">{order.clientName}</TableCell>
+                    <TableCell className="px-4 py-3 max-w-[200px] truncate text-sm">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>{order.address}</span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs p-2">
+                            <p>{order.address}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge
+                        variant={getBadgeVariant(order.status)}
+                        className="capitalize text-xs px-2 py-1"
+                      >
+                        {order.status.toLowerCase().replace("_", " ")}
                       </Badge>
                     </TableCell>
-                    <TableCell>{getCourierName(order.courierId)}</TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {new Date(order.date).toLocaleDateString()}
+                    <TableCell className="px-4 py-3 text-sm">{getCourierName(order.courierId)}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm">
+                      {new Date(order.date).toLocaleDateString("fr-FR", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </TableCell>
-                    <TableCell>{order.amount.toFixed(2)} €</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="px-4 py-3 text-sm">{order.amount.toFixed(2)} €</TableCell>
+                    <TableCell className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => console.log('View details:', order.id)}
-                                aria-label="Voir les détails de la commande"
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                                onClick={() => console.log("View details:", order.id)}
+                                aria-label="Voir les détails"
                               >
-                                <Eye size={16} />
+                                <Eye className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Voir détails</TooltipContent>
+                            <TooltipContent>Détails</TooltipContent>
                           </Tooltip>
                           {canUpdateOrder(order.status) && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => updateOrderStatus(order.id, getNextStatus(order.status))}
-                                  aria-label="Mettre à jour le statut de la commande"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                                  onClick={() =>
+                                    updateOrderStatus(order.id, getNextStatus(order.status))
+                                  }
+                                  aria-label="Mettre à jour le statut"
                                 >
-                                  <Edit size={16} />
+                                  <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Mettre à jour statut</TooltipContent>
+                              <TooltipContent>Mettre à jour</TooltipContent>
                             </Tooltip>
                           )}
                           {canCancelOrder(order.status) && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
-                                  variant="outline"
-                                  size="sm"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
                                   onClick={() => cancelOrder(order.id)}
-                                  className="text-red-600 border-red-600 hover:bg-red-50"
                                   aria-label="Annuler la commande"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Annuler</TooltipContent>
@@ -444,110 +475,153 @@ const CommandePage: React.FC = () => {
           </Table>
         </div>
 
-        {/* Affichage en cartes pour petits écrans */}
-        <div className="md:hidden space-y-4">
+        {/* Affichage en cartes pour mobile et tablette */}
+        <div className="lg:hidden space-y-3">
           {filteredOrders.length === 0 ? (
-            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardContent className="text-center py-6 text-gray-500 dark:text-gray-400">
-                Aucune commande disponible
-              </CardContent>
+            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
+              <div className="p-4 text-center">
+                {isLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-5 w-3/4 mx-auto rounded-md" />
+                    <Skeleton className="h-5 w-1/2 mx-auto rounded-md" />
+                    <Skeleton className="h-5 w-2/3 mx-auto rounded-md" />
+                  </div>
+                ) : (
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">
+                    Aucune commande correspondante
+                  </span>
+                )}
+              </div>
             </Card>
           ) : (
             filteredOrders.map((order) => (
-              <Card
+              <motion.div
                 key={order.id}
-                className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-md"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
               >
-                <CardHeader className="flex flex-row items-center gap-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{order.id}</CardTitle>
-                    <Badge
-                      variant={getBadgeVariant(order.status)}
-                      className="mt-1"
-                    >
-                      {order.status}
-                    </Badge>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleRow(order.id)}
-                    aria-label={expandedRows.has(order.id) ? 'Réduire' : 'Agrandir'}
-                  >
-                    {expandedRows.has(order.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  </Button>
-                </CardHeader>
-                {expandedRows.has(order.id) && (
-                  <CardContent className="space-y-2">
-                    <div>
-                      <strong>Client:</strong> {order.clientName}
+                <Card className="w-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                  <CardHeader className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={getBadgeVariant(order.status)}
+                          className="capitalize text-xs px-2 py-1"
+                        >
+                          {order.status.toLowerCase().replace("_", " ")}
+                        </Badge>
+                        <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                          {order.id.substring(0, 8)}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full"
+                        onClick={() => toggleRow(order.id)}
+                        aria-label={expandedRows.has(order.id) ? "Réduire" : "Agrandir"}
+                      >
+                        {expandedRows.has(order.id) ? (
+                          <ChevronUp className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                        )}
+                      </Button>
                     </div>
-                    <div>
-                      <strong>Adresse:</strong> {order.address}
-                    </div>
-                    <div>
-                      <strong>Statut:</strong> {order.status}
-                    </div>
-                    <div>
-                      <strong>Coursier:</strong> {getCourierName(order.courierId)}
-                    </div>
-                    <div>
-                      <strong>Date:</strong> {new Date(order.date).toLocaleDateString()}
-                    </div>
-                    <div>
-                      <strong>Montant:</strong> {order.amount.toFixed(2)} €
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
+                  </CardHeader>
+                  <AnimatePresence>
+                    {expandedRows.has(order.id) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                      >
+                        <CardContent className="px-4 py-4 space-y-3">
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                                Client
+                              </span>
+                              <p className="text-sm text-gray-900 dark:text-gray-100">{order.clientName}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                                Montant
+                              </span>
+                              <p className="text-sm text-gray-900 dark:text-gray-100">
+                                {order.amount.toFixed(2)} €
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                                Coursier
+                              </span>
+                              <p className="text-sm text-gray-900 dark:text-gray-100">
+                                {getCourierName(order.courierId)}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                                Date
+                              </span>
+                              <p className="text-sm text-gray-900 dark:text-gray-100">
+                                {new Date(order.date).toLocaleDateString("fr-FR", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                                Adresse
+                              </span>
+                              <p className="text-sm text-gray-900 dark:text-gray-100">{order.address}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2 pt-3">
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => console.log('View details:', order.id)}
-                              aria-label="Voir les détails de la commande"
+                              className="flex-1 h-9 text-xs rounded-md border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              onClick={() => console.log("View details:", order.id)}
                             >
-                              <Eye size={16} />
+                              <Eye className="h-4 w-4 mr-1.5" />
+                              Détails
                             </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Voir détails</TooltipContent>
-                        </Tooltip>
-                        {canUpdateOrder(order.status) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
+                            {canUpdateOrder(order.status) && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => updateOrderStatus(order.id, getNextStatus(order.status))}
-                                aria-label="Mettre à jour le statut de la commande"
+                                className="flex-1 h-9 text-xs rounded-md border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                                onClick={() =>
+                                  updateOrderStatus(order.id, getNextStatus(order.status))
+                                }
                               >
-                                <Edit size={16} />
+                                <Edit className="h-4 w-4 mr-1.5" />
+                                Mettre à jour
                               </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Mettre à jour statut</TooltipContent>
-                          </Tooltip>
-                        )}
-                        {canCancelOrder(order.status) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
+                            )}
+                            {canCancelOrder(order.status) && (
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="flex-1 h-9 text-xs rounded-md border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
                                 onClick={() => cancelOrder(order.id)}
-                                className="text-red-600 border-red-600 hover:bg-red-50"
-                                aria-label="Annuler la commande"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 className="h-4 w-4 mr-1.5" />
+                                Annuler
                               </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Annuler</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </TooltipProvider>
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
+                            )}
+                          </div>
+                        </CardContent>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Card>
+              </motion.div>
             ))
           )}
         </div>
@@ -556,52 +630,78 @@ const CommandePage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-8">
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-            <Package className="h-6 w-6" />
-            Gestion des commandes
-          </CardTitle>
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+          <Package className="h-6 w-6 sm:h-7 sm:w-7 text-blue-600 dark:text-blue-400" />
+          Gestion des commandes
+        </h1>
+        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => fetchOrders()}
             disabled={isLoading}
-            className="flex items-center gap-1 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"
+            className="w-full sm:w-auto h-10 px-4 text-sm font-medium border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-            <span className="hidden sm:inline">Actualiser</span>
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Actualiser
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="space-y-2 w-full sm:w-1/3">
-              <Label className="text-gray-900 dark:text-white">Filtrer par statut</Label>
-              <Select value={filterStatus} onValueChange={(value: FilterStatus) => setFilterStatus(value)}>
-                <SelectTrigger className="border-gray-300 dark:border-gray-600">
+        </motion.div>
+      </div>
+
+      <Card className="w-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
+        <CardHeader className="px-4 sm:px-6 py-4 space-y-4">
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Rechercher une commande..."
+              className="pl-10 h-10 text-sm rounded-md border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-white">
+                <Filter className="h-4 w-4" />
+                Statut
+              </Label>
+              <Select
+                value={filterStatus}
+                onValueChange={(value: FilterStatus) => setFilterStatus(value)}
+              >
+                <SelectTrigger className="h-10 text-sm rounded-md border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                   <SelectValue placeholder="Filtrer par statut" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value={OrderStatus.PENDING}>En attente</SelectItem>
-                  <SelectItem value={OrderStatus.IN_PROGRESS}>En cours</SelectItem>
-                  <SelectItem value={OrderStatus.DELIVERED}>Livré</SelectItem>
-                  <SelectItem value={OrderStatus.CANCELLED}>Annulé</SelectItem>
+                <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-md">
+                  <SelectItem value="all" className="text-sm">Tous les statuts</SelectItem>
+                  <SelectItem value={OrderStatus.PENDING} className="text-sm">En attente</SelectItem>
+                  <SelectItem value={OrderStatus.IN_PROGRESS} className="text-sm">En cours</SelectItem>
+                  <SelectItem value={OrderStatus.DELIVERED} className="text-sm">Livré</SelectItem>
+                  <SelectItem value={OrderStatus.CANCELLED} className="text-sm">Annulé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 w-full sm:w-1/3">
-              <Label className="text-gray-900 dark:text-white">Filtrer par coursier</Label>
-              <Select value={filterCourier} onValueChange={(value: FilterCourier) => setFilterCourier(value)}>
-                <SelectTrigger className="border-gray-300 dark:border-gray-600">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-white">
+                <Filter className="h-4 w-4" />
+                Coursier
+              </Label>
+              <Select
+                value={filterCourier}
+                onValueChange={(value: FilterCourier) => setFilterCourier(value)}
+              >
+                <SelectTrigger className="h-10 text-sm rounded-md border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                   <SelectValue placeholder="Filtrer par coursier" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="none">Non assigné</SelectItem>
+                <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-md">
+                  <SelectItem value="all" className="text-sm">Tous les coursiers</SelectItem>
+                  <SelectItem value="none" className="text-sm">Non assigné</SelectItem>
                   {couriers.map((courier) => (
-                    <SelectItem key={courier.id} value={courier.id}>
+                    <SelectItem key={courier.id} value={courier.id} className="text-sm">
                       {courier.name}
                     </SelectItem>
                   ))}
@@ -609,8 +709,8 @@ const CommandePage: React.FC = () => {
               </Select>
             </div>
           </div>
-          {renderTable()}
-        </CardContent>
+        </CardHeader>
+        <CardContent className="p-0 sm:p-4">{renderTable()}</CardContent>
       </Card>
     </div>
   );

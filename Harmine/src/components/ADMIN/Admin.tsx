@@ -141,7 +141,7 @@ const Admin = () => {
         } catch (error) {
           console.error("Erreur récupération utilisateur:", error);
           setUserName(user.displayName || "Administrateur");
-          toast.error("Erreur lors de la récupération des données utilisateur");
+          
         }
       } else {
         setIsAuthenticated(false);
@@ -203,7 +203,7 @@ const Admin = () => {
       },
       (error) => {
         console.error("Erreur listener notifications:", error);
-        toast.error("Erreur lors du chargement des notifications");
+        
       }
     );
 
@@ -274,7 +274,7 @@ const Admin = () => {
       setDeliveryData(counts);
     } catch (error) {
       console.error("Erreur récupération données:", error);
-      toast.error("Erreur lors du chargement des données");
+      
       setStats({
         totalOrders: 0,
         activeCouriers: 0,
@@ -313,20 +313,20 @@ const Admin = () => {
         { notificationIds: unreadIds },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success("Notifications marquées comme lues");
+      
     } catch (error) {
       console.error("Erreur marquage notifications:", error);
-      toast.error("Erreur lors du marquage des notifications");
+      
     }
   };
 
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      toast.success("Déconnexion réussie");
+      
     } catch (error) {
       console.error("Erreur déconnexion:", error);
-      toast.error("Erreur lors de la déconnexion");
+      
     }
   };
 
@@ -565,441 +565,454 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      {!isAuthenticated ? (
-        <div className="flex items-center justify-center h-screen w-full p-4">
-          <Card className="w-full max-w-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
-                Connexion requise
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => (window.location.href = "/login")}
-                className="w-full bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Se connecter
-              </Button>
-            </CardContent>
-          </Card>
+  {!isAuthenticated ? (
+    <div className="flex items-center justify-center h-screen w-full p-4">
+      <Card className="w-full max-w-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
+            Connexion requise
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={() => (window.location.href = "/login")}
+            className="w-full bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Se connecter
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  ) : (
+    <>
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Nouvelle structure de layout */}
+      <div className="flex flex-col lg:flex-row">
+        {/* Sidebar pour desktop */}
+        <div className="hidden lg:block lg:w-64 lg:h-screen lg:sticky lg:top-0 lg:overflow-y-auto">
+          <SidebarContent />
         </div>
-      ) : (
-        <>
-          <AnimatePresence>
-            {sidebarOpen && (
+
+        {/* Sidebar mobile animé */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
+              className="fixed inset-y-0 left-0 w-3/4 max-w-[250px] z-50 lg:hidden"
+            >
+              <SidebarContent />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Contenu principal */}
+        <div className="flex-1 flex flex-col min-h-screen">
+          {/* Header mobile */}
+          <div className="sticky top-0 z-10 flex h-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md text-gray-900 dark:text-gray-100 lg:hidden">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              className="px-4 text-gray-600 dark:text-gray-300 flex items-center"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            >
+              <AnimatePresence mode="wait">
+                {sidebarOpen ? (
+                  <motion.div
+                    key="close"
+                    initial={{ rotate: -45, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 45, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <X className="h-6 w-6" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="menu"
+                    initial={{ rotate: -45, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 45, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Menu className="h-6 w-6" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.button>
+            <div className="flex flex-1 justify-between px-4 items-center">
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                Dynamism Express
+              </h1>
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-                onClick={() => setSidebarOpen(false)}
-                aria-hidden="true"
-              />
-            )}
-          </AnimatePresence>
-          <div className="hidden lg:flex lg:flex-col lg:w-64 lg:h-screen">
-            <SidebarContent />
-          </div>
-          <AnimatePresence>
-            {sidebarOpen && (
-              <motion.div
-                initial={{ x: "-100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "-100%" }}
-                transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
-                className="fixed inset-y-0 left-0 w-3/4 max-w-[250px] z-50 lg:hidden"
-              >
-                <SidebarContent />
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <div className="flex flex-col flex-1 lg:pl-64">
-            <div className="sticky top-0 z-10 flex h-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md text-gray-900 dark:text-gray-100 lg:hidden">
-              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                type="button"
-                className="px-4 text-gray-600 dark:text-gray-300 flex items-center"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                aria-label={sidebarOpen ? "Fermer le menu" : "Ouvrir le menu"}
               >
-                <AnimatePresence mode="wait">
-                  {sidebarOpen ? (
-                    <motion.div
-                      key="close"
-                      initial={{ rotate: -45, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 45, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <X className="h-6 w-6" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="menu"
-                      initial={{ rotate: -45, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 45, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Menu className="h-6 w-6" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-              <div className="flex flex-1 justify-between px-4 items-center">
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                  Dynamism Express
-                </h1>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <Button
+                  variant="outline"
+                  className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 h-8 w-8 p-0 relative"
+                  onClick={() => setShowNotifications(true)}
+                  aria-label="Ouvrir les notifications"
                 >
-                  <Button
-                    variant="outline"
-                    className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 h-8 w-8 p-0 relative"
-                    onClick={() => setShowNotifications(true)}
-                    aria-label="Ouvrir les notifications"
-                  >
-                    <Bell className="h-5 w-5" />
-                    {notificationsCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 bg-red-500 text-xs">
-                        {notificationsCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </motion.div>
-              </div>
+                  <Bell className="h-5 w-5" />
+                  {notificationsCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-xs">
+                      {notificationsCount}
+                    </Badge>
+                  )}
+                </Button>
+              </motion.div>
             </div>
-            <main className="p-2 sm:p-4 flex-1">
-              {activePage === "dashboard" && (
-                <>
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                    <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2 sm:mb-0">
-                      Tableau de bord
-                    </h1>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+          </div>
+
+          {/* Contenu du dashboard */}
+          <main className="p-2 sm:p-4 flex-1">
+            {activePage === "dashboard" && (
+              <>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                  <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2 sm:mb-0">
+                    Tableau de bord
+                  </h1>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button
+                      variant="outline"
+                      className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-200 border-gray-300 dark:border-gray-600 text-sm"
+                      onClick={() => setShowNotifications(true)}
+                      aria-label="Voir les notifications"
                     >
+                      <Bell className="h-4 w-4 mr-1" />
+                      Notifications{" "}
+                      {notificationsCount > 0 && `(${notificationsCount})`}
+                    </Button>
+                  </motion.div>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:gap-4 mb-4 sm:mb-6 sm:grid-cols-2 lg:grid-cols-4">
+                  <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-gray-900 dark:text-white text-sm font-medium">
+                        Total Commandes
+                      </CardTitle>
+                      <PackageIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl font-semibold text-gray-900 dark:text-white">
+                        {stats.totalOrders}
+                      </div>
+                      <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        +12.5% depuis hier
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-gray-900 dark:text-white text-sm font-medium">
+                        Coursiers Actifs
+                      </CardTitle>
+                      <UsersIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl font-semibold text-gray-900 dark:text-white">
+                        {stats.activeCouriers}
+                      </div>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        Disponibles : {stats.activeCouriers}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-gray-900 dark:text-white text-sm font-medium">
+                        Délai moyen
+                      </CardTitle>
+                      <ClockIcon className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl font-semibold text-gray-900 dark:text-white">
+                        {Math.round(stats.avgDeliveryTime)} min
+                      </div>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        -2 min depuis hier
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-gray-900 dark:text-white text-sm font-medium">
+                        Chiffre d'affaires
+                      </CardTitle>
+                      <ChartBarIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl font-semibold text-gray-900 dark:text-white">
+                        {stats.revenue.toFixed(2)} €
+                      </div>
+                      <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        +8.2% cette semaine
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 mb-4 sm:mb-6">
+                  <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <CardHeader>
+                      <CardTitle className="text-gray-900 dark:text-white text-base">
+                        Évolution des commandes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[200px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={deliveryData}>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="#e5e7eb"
+                              strokeOpacity={0.2}
+                            />
+                            <XAxis
+                              dataKey="name"
+                              stroke="#6b7280"
+                              strokeWidth={1}
+                              tick={{ fontSize: 12 }}
+                            />
+                            <YAxis
+                              stroke="#6b7280"
+                              strokeWidth={1}
+                              tick={{ fontSize: 10 }}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: isDarkMode
+                                  ? "#1f2937"
+                                  : "#ffffff",
+                                border: `1px solid ${
+                                  isDarkMode
+                                    ? "rgba(255,255,255,0.2)"
+                                    : "#e5e7eb"
+                                }`,
+                              }}
+                              labelStyle={{
+                                color: isDarkMode ? "#ffffff" : "#000000",
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="commandes"
+                              stroke="#3b82f6"
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-gray-900 dark:text-white text-base">
+                        Commandes récentes
+                      </CardTitle>
                       <Button
-                        variant="outline"
-                        className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-200 border-gray-300 dark:border-gray-600 text-sm"
-                        onClick={() => setShowNotifications(true)}
-                        aria-label="Voir les notifications"
+                        variant="ghost"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm"
+                        onClick={() => setActivePage("commandes")}
+                        aria-label="Voir toutes les commandes"
                       >
-                        <Bell className="h-4 w-4 mr-1" />
-                        Notifications{" "}
-                        {notificationsCount > 0 && `(${notificationsCount})`}
+                        Voir tout
+                        <ChevronRight className="ml-1 h-4 w-4" />
                       </Button>
-                    </motion.div>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2 sm:gap-4 mb-4 sm:mb-6 sm:grid-cols-2 lg:grid-cols-4">
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-gray-900 dark:text-white text-sm font-medium">
-                          Total Commandes
-                        </CardTitle>
-                        <PackageIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-xl font-semibold text-gray-900 dark:text-white">
-                          {stats.totalOrders}
-                        </div>
-                        <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                          +12.5% depuis hier
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-gray-900 dark:text-white text-sm font-medium">
-                          Coursiers Actifs
-                        </CardTitle>
-                        <UsersIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-xl font-semibold text-gray-900 dark:text-white">
-                          {stats.activeCouriers}
-                        </div>
-                        <p className="text-xs text-blue-600 dark:text-blue-400">
-                          Disponibles : {stats.activeCouriers}
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-gray-900 dark:text-white text-sm font-medium">
-                          Délai moyen
-                        </CardTitle>
-                        <ClockIcon className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-xl font-semibold text-gray-900 dark:text-white">
-                          {Math.round(stats.avgDeliveryTime)} min
-                        </div>
-                        <p className="text-xs text-green-600 dark:text-green-400">
-                          -2 min depuis hier
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-gray-900 dark:text-white text-sm font-medium">
-                          Chiffre d’affaires
-                        </CardTitle>
-                        <ChartBarIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-xl font-semibold text-gray-900 dark:text-white">
-                          {stats.revenue.toFixed(2)} €
-                        </div>
-                        <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                          +8.2% cette semaine
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 mb-4 sm:mb-6">
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <CardHeader>
-                        <CardTitle className="text-gray-900 dark:text-white text-base">
-                          Évolution des commandes
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-[200px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={deliveryData}>
-                              <CartesianGrid
-                                strokeDasharray="3 3"
-                                stroke="#e5e7eb"
-                                strokeOpacity={0.2}
-                              />
-                              <XAxis
-                                dataKey="name"
-                                stroke="#6b7280"
-                                strokeWidth={1}
-                                tick={{ fontSize: 12 }}
-                              />
-                              <YAxis
-                                stroke="#6b7280"
-                                strokeWidth={1}
-                                tick={{ fontSize: 10 }}
-                              />
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: isDarkMode
-                                    ? "#1f2937"
-                                    : "#ffffff",
-                                  border: `1px solid ${
-                                    isDarkMode
-                                      ? "rgba(255,255,255,0.2)"
-                                      : "#e5e7eb"
-                                  }`,
-                                }}
-                                labelStyle={{
-                                  color: isDarkMode ? "#ffffff" : "#000000",
-                                }}
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="commandes"
-                                stroke="#3b82f6"
-                                strokeWidth={2}
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-gray-900 dark:text-white text-base">
-                          Commandes récentes
-                        </CardTitle>
-                        <Button
-                          variant="ghost"
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm"
-                          onClick={() => setActivePage("commandes")}
-                          aria-label="Voir toutes les commandes"
-                        >
-                          Voir tout
-                          <ChevronRight className="ml-1 h-4 w-4" />
-                        </Button>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {orders.map((order) => (
-                            <div
-                              key={order.id}
-                              className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
-                            >
-                              <div className="flex items-center space-x-2">
-                                {order.status === "DELIVERED" && (
-                                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                )}
-                                {order.status === "PENDING" && (
-                                  <ClockIcon className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                                )}
-                                {order.status === "CANCELLED" && (
-                                  <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                )}
-                                {order.status === "IN_PROGRESS" && (
-                                  <PackageIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                )}
-                                <div>
-                                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                    Commande #{order.id.slice(0, 6)}
-                                  </p>
-                                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                                    <MapPinIcon className="h-3 w-3 mr-1" />
-                                    <span className="truncate max-w-sm">
-                                      {order.deliveryAddress.address}
-                                    </span>
-                                  </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {orders.map((order) => (
+                          <div
+                            key={order.id}
+                            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                          >
+                            <div className="flex items-center space-x-2">
+                              {order.status === "DELIVERED" && (
+                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              )}
+                              {order.status === "PENDING" && (
+                                <ClockIcon className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                              )}
+                              {order.status === "CANCELLED" && (
+                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                              )}
+                              {order.status === "IN_PROGRESS" && (
+                                <PackageIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              )}
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                  Commande #{order.id.slice(0, 6)}
+                                </p>
+                                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                  <MapPinIcon className="h-3 w-3 mr-1" />
+                                  <span className="truncate max-w-sm">
+                                    {order.deliveryAddress.address}
+                                  </span>
                                 </div>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-xs"
-                                aria-label={`Voir les détails de la commande ${order.id}`}
-                              >
-                                Détails
-                              </Button>
                             </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 mb-2">
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-gray-900 dark-dark:text-white text-base font-semibold">
-                          Messages
-                        </CardTitle>
-                        <Button
-                          variant="ghost"
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm"
-                          onClick={() => setActivePage("messages")}
-                          aria-label="Voir tous les messages"
-                        >
-                          Voir tout
-                          <ChevronRight className="ml-1 h-4 w-4" />
-                        </Button>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {messages.length === 0 ? (
-                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                              Aucun message disponible
-                            </p>
-                          ) : (
-                            messages.map((message) => (
-                              <div
-                                key={message.id}
-                                className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
-                              >
-                                <div className="rounded-full bg-gray-200 dark:bg-gray-700 p-2">
-                                  <MessageCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                      {message.name} ({message.email})
-                                    </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                      {formatDateRelative(
-                                        new Date(message.createdAt),
-                                        "date-time",
-                                        { locale: fr }
-                                      )}
-                                    </p>
-                                  </div>
-                                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                                    {message.message}
-                                  </p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    User ID: {message.userId || "anonyme"}
-                                  </p>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-gray-900 dark:text-white text-base font-semibold">
-                          Notifications récentes
-                        </CardTitle>
-                        <Button
-                          variant="ghost"
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm"
-                          onClick={markNotificationsAsRead}
-                          aria-label="Marquer toutes les notifications comme lues"
-                        >
-                          Tout marquer comme lu
-                        </Button>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {notifications.slice(0, 3).map((notif) => (
-                            <div
-                              key={notif.id}
-                              className="flex items-center space-x-3 p-3 bg-gray-100 dark:bg-gray-900 rounded-lg"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-xs"
+                              aria-label={`Voir les détails de la commande ${order.id}`}
                             >
-                              <div className="flex items-center rounded-full bg-gray-200 dark:bg-gray-700 p-2">
-                                <span className="text-blue-600 dark:text-blue-400 text-sm">
-                                  {getNotificationIcon(notif.type)}
-                                </span>
+                              Détails
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 mb-2">
+                  <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-gray-900 dark-dark:text-white text-base font-semibold">
+                        Messages
+                      </CardTitle>
+                      <Button
+                        variant="ghost"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm"
+                        onClick={() => setActivePage("messages")}
+                        aria-label="Voir tous les messages"
+                      >
+                        Voir tout
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {messages.length === 0 ? (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                            Aucun message disponible
+                          </p>
+                        ) : (
+                          messages.map((message) => (
+                            <div
+                              key={message.id}
+                              className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                            >
+                              <div className="rounded-full bg-gray-200 dark:bg-gray-700 p-2">
+                                <MessageCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                  {notif.title}
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                                  {notif.message}
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {message.name} ({message.email})
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {formatDateRelative(
+                                      new Date(message.createdAt),
+                                      "date-time",
+                                      { locale: fr }
+                                    )}
+                                  </p>
+                                </div>
+                                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                                  {message.message}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                  {formatDateRelative(
-                                    new Date(notif.createdAt),
-                                    "date-time",
-                                    { locale: fr }
-                                  )}
+                                  User ID: {message.userId || "anonyme"}
                                 </p>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </>
-              )}
-              {activePage === "coursiers" && <CouriersPage />}
-              {activePage === "clients" && <ClientsPage />}
-              {activePage === "commandes" && <CommandePage />}
-              {activePage === "settings" && <SettingsPage />}
-              {activePage === "rapports" && <Rapport />}
-              {activePage === "messages" && (
-                <div>Page des messages (à implémenter)</div>
-              )}
-            </main>
-            <ThemeToggle
-              darkMode={isDarkMode}
-              toggleDarkMode={toggleDarkMode}
-            />
-          </div>
-          {showNotifications && <NotificationsPanel />}
-        </>
-      )}
-    </div>
+                          ))
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-gray-900 dark:text-white text-base font-semibold">
+                        Notifications récentes
+                      </CardTitle>
+                      <Button
+                        variant="ghost"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm"
+                        onClick={markNotificationsAsRead}
+                        aria-label="Marquer toutes les notifications comme lues"
+                      >
+                        Tout marquer comme lu
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {notifications.slice(0, 3).map((notif) => (
+                          <div
+                            key={notif.id}
+                            className="flex items-center space-x-3 p-3 bg-gray-100 dark:bg-gray-900 rounded-lg"
+                          >
+                            <div className="flex items-center rounded-full bg-gray-200 dark:bg-gray-700 p-2">
+                              <span className="text-blue-600 dark:text-blue-400 text-sm">
+                                {getNotificationIcon(notif.type)}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                {notif.title}
+                              </p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                                {notif.message}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {formatDateRelative(
+                                  new Date(notif.createdAt),
+                                  "date-time",
+                                  { locale: fr }
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
+            {activePage === "coursiers" && <CouriersPage />}
+            {activePage === "clients" && <ClientsPage />}
+            {activePage === "commandes" && <CommandePage />}
+            {activePage === "settings" && <SettingsPage />}
+            {activePage === "rapports" && <Rapport />}
+            {activePage === "messages" && (
+              <div>Page des messages (à implémenter)</div>
+            )}
+          </main>
+        </div>
+      </div>
+
+      <ThemeToggle
+        darkMode={isDarkMode}
+        toggleDarkMode={toggleDarkMode}
+      />
+      {showNotifications && <NotificationsPanel />}
+    </>
+  )}
+</div>
   );
 };
 

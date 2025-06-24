@@ -1057,9 +1057,7 @@ const Suivi = () => {
         });
       } catch (error: any) {
         console.error("Erreur lors de la récupération des données:", error);
-        toast.error(
-          error.message || "Impossible de charger les données de la commande"
-        );
+        
       } finally {
         setIsLoading(false);
       }
@@ -1189,7 +1187,7 @@ const Suivi = () => {
       setShowFeedbackForm(false);
     } catch (error: any) {
       console.error("Erreur lors de l'envoi du feedback:", error);
-      toast.error(error.message || "Erreur lors de l'envoi de l'avis");
+      
     } finally {
       setIsLoading(false);
     }

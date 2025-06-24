@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
 import { getAuth } from "firebase/auth";
+import { motion } from "framer-motion";
 
 interface DeliveryPrices {
   distance: number;
@@ -69,10 +70,9 @@ const SettingsPage: React.FC = () => {
   const [isSavingVehicles, setIsSavingVehicles] = useState<boolean>(false);
   const [isSavingAccount, setIsSavingAccount] = useState<boolean>(false);
   const [isSavingAll, setIsSavingAll] = useState<boolean>(false);
-
   const [newVehicleType, setNewVehicleType] = useState<string>("");
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("authToken");
@@ -87,28 +87,26 @@ const SettingsPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ error: "Erreur de communication" }));
         throw new Error(
           errorData.error || "Erreur lors de la récupération des paramètres"
         );
       }
 
       const data = await response.json();
-      console.log("Raw Settings Data:", data.data);
-      setDeliveryPrices(data.data.deliveryPrices);
-      setPromotion(data.data.promotion);
-      setCoverageZones(data.data.coverageZones);
-      setVehicleTypes(data.data.vehicleTypes);
-      setCompanyInfo(data.data.companyInfo);
-      setAdminUsers(data.data.adminUsers);
-      toast.success("Paramètres chargés avec succès");
+      setDeliveryPrices(data.data.deliveryPrices || { distance: 0, weight: 0, vehicleType: "moto" });
+      setPromotion(data.data.promotion || { code: "", discount: 0, active: false });
+      setCoverageZones(data.data.coverageZones || []);
+      setVehicleTypes(data.data.vehicleTypes || ["moto", "voiture", "vélo"]);
+      setCompanyInfo(data.data.companyInfo || { name: "", email: "", address: "" });
+      setAdminUsers(data.data.adminUsers || []);
+      
     } catch (error: any) {
-      console.error("Erreur lors du chargement des paramètres:", error);
       toast.error(error.message || "Erreur lors du chargement des paramètres");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const saveSettings = async (
     section: string,
@@ -116,17 +114,13 @@ const SettingsPage: React.FC = () => {
     setIsSaving: React.Dispatch<React.SetStateAction<boolean>>,
     retryCount = 0
   ) => {
+    const MAX_RETRIES = 2;
     try {
       setIsSaving(true);
-      let token = localStorage.getItem("authToken");
+      const token = localStorage.getItem("authToken");
       if (!token) {
         throw new Error("Aucun token d'authentification trouvé");
       }
-
-      console.log(
-        `Tentative de sauvegarde de ${section} avec token:`,
-        token.substring(0, 10) + "..."
-      );
 
       const response = await fetch("https://debutant.onrender.com/api/settings", {
         method: "PATCH",
@@ -138,36 +132,26 @@ const SettingsPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.error === "Token invalide" && retryCount < 2) {
-          console.log("Token invalide, tentative de rafraîchissement...");
+        const errorData = await response.json().catch(() => ({ error: "Erreur de communication" }));
+        if (errorData.error === "Token invalide" && retryCount < MAX_RETRIES) {
           const auth = getAuth();
           const user = auth.currentUser;
           if (user) {
-            token = await user.getIdToken(true);
-            localStorage.setItem("authToken", token);
-            console.log(
-              "Nouveau token obtenu:",
-              token.substring(0, 10) + "..."
-            );
+            const newToken = await user.getIdToken(true);
+            localStorage.setItem("authToken", newToken);
             return saveSettings(section, data, setIsSaving, retryCount + 1);
-          } else {
-            throw new Error("Utilisateur non connecté");
           }
+          throw new Error("Utilisateur non connecté");
         }
         throw new Error(
           errorData.error || `Erreur lors de la mise à jour des ${section}`
         );
       }
 
-      const responseData = await response.json();
-      console.log(`${section} mis à jour:`, responseData.data);
-      toast.success(`${section} mis à jour avec succès`);
+      await response.json();
+      
     } catch (error: any) {
-      console.error(`Erreur lors de la mise à jour des ${section}:`, error);
-      toast.error(
-        error.message || `Erreur lors de la mise à jour des ${section}`
-      );
+      console.error(error.message || `Erreur lors de la mise à jour des ${section}`);
     } finally {
       setIsSaving(false);
     }
@@ -206,25 +190,28 @@ const SettingsPage: React.FC = () => {
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
 
   const handleDeliveryPriceChange = (
     field: keyof DeliveryPrices,
     value: string
   ) => {
-    setDeliveryPrices({ ...deliveryPrices, [field]: value });
+    setDeliveryPrices({ ...deliveryPrices, [field]: field === "vehicleType" ? value : parseFloat(value) || 0 });
   };
 
   const handlePromotionChange = (
     field: keyof Promotion,
     value: string | boolean
   ) => {
-    setPromotion({ ...promotion, [field]: value });
+    setPromotion({
+      ...promotion,
+      [field]: field === "discount" ? parseFloat(value as string) || 0 : value,
+    });
   };
 
   const addCoverageZone = () => {
     if (newZone.trim() !== "") {
-      const updatedZones = [...coverageZones, newZone];
+      const updatedZones = [...coverageZones, newZone.trim()];
       setCoverageZones(updatedZones);
       setNewZone("");
       saveSettings(
@@ -233,21 +220,22 @@ const SettingsPage: React.FC = () => {
         setIsSavingZones
       );
     } else {
-      toast.error("La zone ne peut pas être vide");
+      console.error("La zone ne peut pas être vide");
     }
   };
 
   const addVehicleType = (type: string) => {
-    if (type.trim() !== "" && !vehicleTypes.includes(type)) {
-      const updatedVehicleTypes = [...vehicleTypes, type];
+    if (type.trim() !== "" && !vehicleTypes.includes(type.trim())) {
+      const updatedVehicleTypes = [...vehicleTypes, type.trim()];
       setVehicleTypes(updatedVehicleTypes);
+      setNewVehicleType("");
       saveSettings(
         "Types de véhicules",
         { vehicleTypes: updatedVehicleTypes },
         setIsSavingVehicles
       );
     } else {
-      toast.error("Type de véhicule invalide ou déjà existant");
+      console.error("Type de véhicule invalide ou déjà existant");
     }
   };
 
@@ -259,47 +247,44 @@ const SettingsPage: React.FC = () => {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Chargement des paramètres...</span>
+        <span className="ml-2 text-sm sm:text-base">Chargement des paramètres...</span>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Gestion des tarifs</CardTitle>
+    <div className="w-full p-3 sm:p-4 md:p-6 space-y-4">
+      {/* Gestion des tarifs */}
+      <Card className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader className="p-3 sm:p-4">
+          <CardTitle className="text-lg sm:text-xl">Gestion des tarifs</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="space-y-2">
-            <Label>Tarif en fonction de la distance (€/km)</Label>
+            <Label className="text-sm">Tarif en fonction de la distance (€/km)</Label>
             <Input
               type="number"
               value={deliveryPrices.distance}
-              onChange={(e) =>
-                handleDeliveryPriceChange("distance", e.target.value)
-              }
+              onChange={(e) => handleDeliveryPriceChange("distance", e.target.value)}
+              className="w-full h-8 sm:h-9 text-sm"
             />
           </div>
           <div className="space-y-2">
-            <Label>Tarif en fonction du poids (€/kg)</Label>
+            <Label className="text-sm">Tarif en fonction du poids (€/kg)</Label>
             <Input
               type="number"
               value={deliveryPrices.weight}
-              onChange={(e) =>
-                handleDeliveryPriceChange("weight", e.target.value)
-              }
+              onChange={(e) => handleDeliveryPriceChange("weight", e.target.value)}
+              className="w-full h-8 sm:h-9 text-sm"
             />
           </div>
           <div className="space-y-2">
-            <Label>Type de véhicule</Label>
+            <Label className="text-sm">Type de véhicule</Label>
             <Select
               value={deliveryPrices.vehicleType}
-              onValueChange={(value) =>
-                handleDeliveryPriceChange("vehicleType", value)
-              }
+              onValueChange={(value) => handleDeliveryPriceChange("vehicleType", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full h-8 sm:h-9 text-sm">
                 <SelectValue placeholder="Sélectionnez un type de véhicule" />
               </SelectTrigger>
               <SelectContent>
@@ -312,76 +297,88 @@ const SettingsPage: React.FC = () => {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Promotion</Label>
+            <Label className="text-sm">Promotion</Label>
             <Input
               placeholder="Code de promotion"
               value={promotion.code}
               onChange={(e) => handlePromotionChange("code", e.target.value)}
+              className="w-full h-8 sm:h-9 text-sm"
             />
             <Input
               type="number"
               placeholder="Réduction (%)"
               value={promotion.discount}
-              onChange={(e) =>
-                handlePromotionChange("discount", e.target.value)
-              }
+              onChange={(e) => handlePromotionChange("discount", e.target.value)}
+              className="w-full h-8 sm:h-9 text-sm"
             />
             <div className="flex items-center space-x-2">
               <Switch
                 checked={promotion.active}
-                onCheckedChange={(checked) =>
-                  handlePromotionChange("active", checked)
-                }
+                onCheckedChange={(checked) => handlePromotionChange("active", checked)}
               />
-              <Label>Activer la promotion</Label>
+              <Label className="text-sm">Activer la promotion</Label>
             </div>
           </div>
           <div className="flex justify-end">
-            <Button onClick={saveTarifs} disabled={isSavingTarifs}>
-              {isSavingTarifs ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Validation...
-                </>
-              ) : (
-                "Valider les tarifs"
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={saveTarifs}
+                disabled={isSavingTarifs}
+                className="h-8 sm:h-9 text-sm"
+              >
+                {isSavingTarifs ? (
+                  <>
+                    <Loader2 className="mr-1 sm:mr-2 h-4 w-4 animate-spin" />
+                    Validation...
+                  </>
+                ) : (
+                  "Valider les tarifs"
+                )}
+              </Button>
+            </motion.div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Zones de couverture</CardTitle>
+      {/* Zones de couverture */}
+      <Card className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader className="p-3 sm:p-4">
+          <CardTitle className="text-lg sm:text-xl">Zones de couverture</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="space-y-2">
-            <Label>Ajouter une zone</Label>
-            <div className="flex space-x-2">
+            <Label className="text-sm">Ajouter une zone</Label>
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               <Input
                 placeholder="Nom de la zone"
                 value={newZone}
                 onChange={(e) => setNewZone(e.target.value)}
+                className="w-full h-8 sm:h-9 text-sm"
               />
-              <Button onClick={addCoverageZone} disabled={isSavingZones}>
-                {isSavingZones ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Ajout...
-                  </>
-                ) : (
-                  "Ajouter"
-                )}
-              </Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={addCoverageZone}
+                  disabled={isSavingZones}
+                  className="h-8 sm:h-9 text-sm"
+                >
+                  {isSavingZones ? (
+                    <>
+                      <Loader2 className="mr-1 sm:mr-2 h-4 w-4 animate-spin" />
+                      Ajout...
+                    </>
+                  ) : (
+                    "Ajouter"
+                  )}
+                </Button>
+              </motion.div>
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Zones disponibles</Label>
+            <Label className="text-sm">Zones disponibles</Label>
             {coverageZones.length === 0 ? (
-              <p className="text-gray-500">Aucune zone disponible</p>
+              <p className="text-gray-500 text-sm">Aucune zone disponible</p>
             ) : (
-              <ul className="list-disc pl-6">
+              <ul className="list-disc pl-4 sm:pl-6 text-sm">
                 {coverageZones.map((zone, index) => (
                   <li key={index}>{zone}</li>
                 ))}
@@ -389,31 +386,38 @@ const SettingsPage: React.FC = () => {
             )}
           </div>
           <div className="flex justify-end">
-            <Button onClick={saveZones} disabled={isSavingZones}>
-              {isSavingZones ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Validation...
-                </>
-              ) : (
-                "Valider les zones"
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={saveZones}
+                disabled={isSavingZones}
+                className="h-8 sm:h-9 text-sm"
+              >
+                {isSavingZones ? (
+                  <>
+                    <Loader2 className="mr-1 sm:mr-2 h-4 w-4 animate-spin" />
+                    Validation...
+                  </>
+                ) : (
+                  "Valider les zones"
+                )}
+              </Button>
+            </motion.div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Types de véhicules</CardTitle>
+      {/* Types de véhicules */}
+      <Card className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader className="p-3 sm:p-4">
+          <CardTitle className="text-lg sm:text-xl">Types de véhicules</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="space-y-2">
-            <Label>Véhicules autorisés</Label>
+            <Label className="text-sm">Véhicules autorisés</Label>
             {vehicleTypes.length === 0 ? (
-              <p className="text-gray-500">Aucun type de véhicule disponible</p>
+              <p className="text-gray-500 text-sm">Aucun type de véhicule disponible</p>
             ) : (
-              <ul className="list-disc pl-6">
+              <ul className="list-disc pl-4 sm:pl-6 text-sm">
                 {vehicleTypes.map((type, index) => (
                   <li key={index}>{type}</li>
                 ))}
@@ -421,80 +425,91 @@ const SettingsPage: React.FC = () => {
             )}
           </div>
           <div className="space-y-2">
-            <Label>Ajouter un type de véhicule</Label>
-            <div className="flex space-x-2">
+            <Label className="text-sm">Ajouter un type de véhicule</Label>
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               <Input
                 placeholder="Nouveau type de véhicule"
                 value={newVehicleType}
                 onChange={(e) => setNewVehicleType(e.target.value)}
+                className="w-full h-8 sm:h-9 text-sm"
               />
-              <Button
-                onClick={() => {
-                  addVehicleType(newVehicleType);
-                  setNewVehicleType(""); // Reset après ajout
-                }}
-                disabled={isSavingVehicles}
-              >
-                {isSavingVehicles ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Ajout...
-                  </>
-                ) : (
-                  "Ajouter"
-                )}
-              </Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={() => {
+                    addVehicleType(newVehicleType);
+                  }}
+                  disabled={isSavingVehicles}
+                  className="h-8 sm:h-9 text-sm"
+                >
+                  {isSavingVehicles ? (
+                    <>
+                      <Loader2 className="mr-1 sm:mr-2 h-4 w-4 animate-spin" />
+                      Ajout...
+                    </>
+                  ) : (
+                    "Ajouter"
+                  )}
+                </Button>
+              </motion.div>
             </div>
           </div>
           <div className="flex justify-end">
-            <Button onClick={saveVehicles} disabled={isSavingVehicles}>
-              {isSavingVehicles ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Validation...
-                </>
-              ) : (
-                "Valider les types de véhicules"
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={saveVehicles}
+                disabled={isSavingVehicles}
+                className="h-8 sm:h-9 text-sm"
+              >
+                {isSavingVehicles ? (
+                  <>
+                    <Loader2 className="mr-1 sm:mr-2 h-4 w-4 animate-spin" />
+                    Validation...
+                  </>
+                ) : (
+                  "Valider les types de véhicules"
+                )}
+              </Button>
+            </motion.div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Paramètres du compte</CardTitle>
+      {/* Paramètres du compte */}
+      <Card className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader className="p-3 sm:p-4">
+          <CardTitle className="text-lg sm:text-xl">Paramètres du compte</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="space-y-2">
-            <Label>Nom de l'entreprise</Label>
+            <Label className="text-sm">Nom de l'entreprise</Label>
             <Input
               value={companyInfo.name}
               onChange={(e) => handleCompanyInfoChange("name", e.target.value)}
+              className="w-full h-8 sm:h-9 text-sm"
             />
           </div>
           <div className="space-y-2">
-            <Label>Email de contact</Label>
+            <Label className="text-sm">Email de contact</Label>
             <Input
               value={companyInfo.email}
               onChange={(e) => handleCompanyInfoChange("email", e.target.value)}
+              className="w-full h-8 sm:h-9 text-sm"
             />
           </div>
           <div className="space-y-2">
-            <Label>Adresse</Label>
+            <Label className="text-sm">Adresse</Label>
             <Input
               value={companyInfo.address}
-              onChange={(e) =>
-                handleCompanyInfoChange("address", e.target.value)
-              }
+              onChange={(e) => handleCompanyInfoChange("address", e.target.value)}
+              className="w-full h-8 sm:h-9 text-sm"
             />
           </div>
           <div className="space-y-2">
-            <Label>Utilisateurs administrateurs</Label>
+            <Label className="text-sm">Utilisateurs administrateurs</Label>
             {adminUsers.length === 0 ? (
-              <p className="text-gray-500">Aucun administrateur disponible</p>
+              <p className="text-gray-500 text-sm">Aucun administrateur disponible</p>
             ) : (
-              <ul className="list-disc pl-6">
+              <ul className="list-disc pl-4 sm:pl-6 text-sm">
                 {adminUsers.map((user) => (
                   <li key={user.id}>
                     {user.name} ({user.email})
@@ -504,31 +519,44 @@ const SettingsPage: React.FC = () => {
             )}
           </div>
           <div className="flex justify-end">
-            <Button onClick={saveAccount} disabled={isSavingAccount}>
-              {isSavingAccount ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Validation...
-                </>
-              ) : (
-                "Valider les paramètres du compte"
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={saveAccount}
+                disabled={isSavingAccount}
+                className="h-8 sm:h-9 text-sm"
+              >
+                {isSavingAccount ? (
+                  <>
+                    <Loader2 className="mr-1 sm:mr-2 h-4 w-4 animate-spin" />
+                    Validation...
+                  </>
+                ) : (
+                  "Valider les paramètres du compte"
+                )}
+              </Button>
+            </motion.div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Sauvegarde globale */}
       <div className="flex justify-end">
-        <Button onClick={saveAllSettings} disabled={isSavingAll}>
-          {isSavingAll ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sauvegarde...
-            </>
-          ) : (
-            "Sauvegarder tous les paramètres"
-          )}
-        </Button>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button
+            onClick={saveAllSettings}
+            disabled={isSavingAll}
+            className="h-8 sm:h-9 text-sm mr-2 sm:mr-3"
+          >
+            {isSavingAll ? (
+              <>
+                <Loader2 className="mr-1 sm:mr-2 h-4 w-4 animate-spin" />
+                Sauvegarde...
+              </>
+            ) : (
+              "Sauvegarder tous les paramètres"
+            )}
+          </Button>
+        </motion.div>
       </div>
     </div>
   );

@@ -51,12 +51,7 @@ export default function Footer() {
       // Type assertion for AxiosError
       const axiosError = error as AxiosError<{ error?: string }>;
       console.error("Erreur lors de l'inscription à la newsletter:", axiosError);
-      const errorMessage =
-        axiosError.response?.data?.error || "Une erreur est survenue. Veuillez réessayer.";
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      
     } finally {
       setIsSubmitting(false);
     }

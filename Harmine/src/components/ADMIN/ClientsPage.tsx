@@ -55,10 +55,10 @@ const ClientsPage: React.FC = () => {
       const data = await response.json();
       console.log('✅ Données reçues de /api/clients:', data);
       setClients(data.data || []);
-      toast.success('Clients chargés avec succès');
+      
     } catch (error: any) {
       console.error('❌ Erreur lors du chargement des clients:', error);
-      toast.error(error.message || 'Erreur lors du chargement des clients');
+      
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +89,7 @@ const ClientsPage: React.FC = () => {
       return data.data;
     } catch (error: any) {
       console.error('❌ Erreur lors de la récupération des commandes:', error);
-      toast.error(error.message || 'Erreur lors de la récupération des commandes');
+      
       return [];
     } finally {
       setIsLoadingOrders(false);
@@ -155,11 +155,11 @@ const ClientsPage: React.FC = () => {
 
       const data = await response.json();
       console.log('✅ Réponse serveur:', data);
-      toast.success('Notification envoyée avec succès');
+      
       setNotification({ title: '', message: '' });
     } catch (error: any) {
       console.error('❌ Erreur lors de l\'envoi de la notification:', error);
-      toast.error(error.message || 'Erreur lors de l\'envoi de la notification');
+      
     } finally {
       setIsSendingNotification(false);
     }

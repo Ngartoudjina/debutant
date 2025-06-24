@@ -25,7 +25,7 @@ export const EnhancedGoogleLogin: React.FC<EnhancedGoogleLoginProps> = ({
         }
       } catch (error) {
         console.error('Erreur lors de la connexion Google:', error);
-        toast.error('Échec de la connexion avec Google. Veuillez réessayer.');
+        
         if (onError) {
           onError(error);
         }
@@ -35,7 +35,7 @@ export const EnhancedGoogleLogin: React.FC<EnhancedGoogleLoginProps> = ({
     },
     onError: (error) => {
       console.error('Erreur Google Login:', error);
-      toast.error("Échec de l'authentification Google");
+      
       if (onError) {
         onError(error);
       }

@@ -158,19 +158,13 @@ const ContactPage: React.FC = memo(() => {
           userId,
         }
       );
-      toast.success(response.data.message, {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (error: any) {
       console.error("Erreur lors de l'envoi du message:", error);
       const errorMessage =
         error.response?.data?.error || "Erreur lors de l'envoi du message.";
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      
     } finally {
       setIsSubmitting(false);
     }
@@ -193,20 +187,14 @@ const ContactPage: React.FC = memo(() => {
           email: newsletterEmail,
         }
       );
-      toast.success(response.data.message, {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      
       setNewsletterEmail("");
     } catch (error: any) {
       console.error("Erreur lors de l'inscription :", error);
       const errorMessage =
         error.response?.data?.error ||
         "Erreur lors de l'inscription à la newsletter.";
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      
     }
   };
 
@@ -238,10 +226,7 @@ const ContactPage: React.FC = memo(() => {
       setChatInput("");
     } catch (error) {
       console.error("Erreur lors de l'envoi du message :", error);
-      toast.error("Erreur lors de l'envoi du message de chat.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      
     }
   };
 

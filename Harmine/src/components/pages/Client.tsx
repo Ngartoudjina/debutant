@@ -172,7 +172,7 @@ const Client: React.FC = () => {
       if (!user) throw new Error("Utilisateur non authentifié");
       return await user.getIdToken();
     } catch (error) {
-      console.error("Erreur lors de la récupération du token:", error);
+      console.error("");
       throw error;
     }
   }, [auth]);
@@ -279,7 +279,7 @@ const Client: React.FC = () => {
         const token = await getIdToken();
         if (Notification.permission === "denied") {
           toast.error(
-            "Les notifications sont bloquées. Veuillez autoriser les notifications dans les paramètres du navigateur."
+            ""
           );
           return;
         }
@@ -298,7 +298,7 @@ const Client: React.FC = () => {
         onMessageListener()
           .then((payload: unknown) => {
             const message = payload as FirebaseMessage;
-            toast.success(message.notification.body);
+            
             setNotifications((prev) => [
               {
                 id: message.messageId,
@@ -354,10 +354,10 @@ const Client: React.FC = () => {
         body: JSON.stringify({ primaryColor: color }),
       });
       if (!response.ok) throw new Error("Erreur lors de la mise à jour de la couleur");
-      toast.success("Couleur mise à jour");
+      
     } catch (error) {
       console.error("Erreur lors de la mise à jour de la couleur:", error);
-      toast.error("Erreur lors de la mise à jour de la couleur");
+      
     }
   };
 
@@ -374,10 +374,10 @@ const Client: React.FC = () => {
         body: JSON.stringify({ dashboardLayout: newOrder }),
       });
       if (!response.ok) throw new Error("Erreur lors de la mise à jour de la disposition");
-      toast.success("Disposition mise à jour");
+      
     } catch (error) {
       console.error("Erreur lors de la mise à jour de la disposition:", error);
-      toast.error("Erreur lors de la mise à jour de la disposition");
+      
     }
   };
 
@@ -476,7 +476,7 @@ const Client: React.FC = () => {
       fetchOrders(token);
     } catch (error) {
       console.error("Erreur lors de la création de la commande:", error);
-      toast.error("Erreur lors de la création de la commande");
+      
     }
   };
 
@@ -500,7 +500,7 @@ const Client: React.FC = () => {
       toast.success("Avis envoyé !");
     } catch (error) {
       console.error("Erreur lors de la soumission de l'avis:", error);
-      toast.error("Erreur lors de la soumission de l'avis");
+      
     }
   };
 
@@ -519,10 +519,10 @@ const Client: React.FC = () => {
       setNotifications((prev) =>
         prev.map((notif) => (notif.id === notificationId ? { ...notif, read: true } : notif))
       );
-      toast.success("Notification marquée comme lue");
+      
     } catch (error) {
       console.error("Erreur lors du marquage de la notification:", error);
-      toast.error("Erreur lors du marquage de la notification");
+      
     }
   };
 
@@ -543,10 +543,10 @@ const Client: React.FC = () => {
       setNotifications((prev) =>
         prev.map((notif) => (unreadNotifications.includes(notif.id) ? { ...notif, read: true } : notif))
       );
-      toast.success("Notifications marquées comme lues");
+      
     } catch (error) {
       console.error("Erreur lors du marquage des notifications:", error);
-      toast.error("Erreur lors du marquage des notifications");
+      
     }
   };
 
@@ -563,10 +563,10 @@ const Client: React.FC = () => {
       });
       if (!response.ok) throw new Error("Erreur lors de la suppression de la notification");
       setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
-      toast.success("Notification supprimée");
+      
     } catch (error) {
       console.error("Erreur lors de la suppression de la notification:", error);
-      toast.error("Erreur lors de la suppression de la notification");
+      
     }
   };
 
@@ -583,10 +583,10 @@ const Client: React.FC = () => {
       });
       if (!response.ok) throw new Error("Erreur lors de la suppression des notifications");
       setNotifications([]);
-      toast.success("Toutes les notifications ont été supprimées");
+      
     } catch (error) {
       console.error("Erreur lors de la suppression des notifications:", error);
-      toast.error("Erreur lors de la suppression des notifications");
+      
     }
   };
 
@@ -622,7 +622,7 @@ const Client: React.FC = () => {
       e.currentTarget.reset();
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
-      toast.error("Erreur lors de l'envoi du message");
+      
     }
   };
 

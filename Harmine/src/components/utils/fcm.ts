@@ -1,7 +1,6 @@
 import { getToken, onMessage } from "firebase/messaging";
 import { getMessagingInstance } from "../../../firebaseConfig";
 import axios from "axios";
-import { toast } from "react-toastify";
 import type { User as FirebaseUser } from "firebase/auth";
 
 export const setupFCM = async (user: FirebaseUser) => {
@@ -25,16 +24,6 @@ export const setupFCM = async (user: FirebaseUser) => {
     console.log("📜 Permission notification:", permission);
     if (permission !== "granted") {
       console.warn("⚠️ Permission notifications refusée");
-      toast.warn(
-        "Les notifications sont désactivées. Activez-les dans les paramètres du navigateur pour recevoir des mises à jour.",
-        {
-          onClick: () =>
-            window.open(
-              "https://support.google.com/chrome/answer/6148059?hl=fr",
-              "_blank"
-            ),
-        }
-      );
     }
 
     const messaging = await getMessagingInstance();
@@ -116,12 +105,8 @@ export const setupFCM = async (user: FirebaseUser) => {
     console.log("✅ Token FCM envoyé au backend:", fcmToken || "null");
   } catch (error: any) {
     console.error("❌ Erreur setupFCM:", error);
-    if (error.message.includes("Service Worker")) {
-      toast.warn("Erreur Service Worker. Veuillez réessayer.");
-    } else if (error.message.includes("VAPID")) {
-      toast.error("Erreur de configuration des notifications.");
-    }
-    // Envoyer un token null
+    
+    
     if (user && user.uid) {
       try {
         const idToken = await user.getIdToken(true);

@@ -119,7 +119,7 @@ const LoginPage: React.FC = () => {
 
         onMessage(messaging, (payload) => {
           console.log("Notification reçue:", payload);
-          toast.info(`${payload.notification?.title}: ${payload.notification?.body}`);
+          
         });
       }
 
@@ -162,12 +162,7 @@ const LoginPage: React.FC = () => {
         console.error("Erreur lors de l'enregistrement FCM null:", registerError);
       }
 
-      const message =
-        error instanceof Error && error.message === "messaging/permission-blocked"
-          ? "Les notifications sont bloquées. Activez-les dans les paramètres du navigateur."
-          : "Notifications non disponibles sur ce navigateur.";
-
-      toast.warn(message);
+      
       return null;
     }
   };
@@ -306,7 +301,6 @@ const LoginPage: React.FC = () => {
         console.error("Erreur FCM non bloquante:", error);
       });
 
-      toast.success("Connexion réussie !");
 
       const redirectTo = location.state?.from || (userData.role === "admin" ? "/admin" : "/");
       console.log("Redirection vers:", redirectTo);
@@ -314,29 +308,7 @@ const LoginPage: React.FC = () => {
     } catch (error: unknown) {
       console.error("Erreur connexion:", error);
 
-      let errorMessage = "Erreur lors de la connexion";
-
-      if (error instanceof Error) {
-        if (error.message.includes("timeout") || error.message.includes("Timeout")) {
-          errorMessage = "Délai d'attente dépassé. Vérifiez votre connexion.";
-        } else if (error.message.includes("auth/invalid-custom-token")) {
-          errorMessage = "Token invalide. Veuillez réessayer.";
-        } else if (error.message.includes("auth/network-request-failed")) {
-          errorMessage = "Problème de connexion réseau.";
-        } else if (error.message.includes("auth/wrong-password")) {
-          errorMessage = "Mot de passe incorrect";
-        } else if (error.message.includes("auth/user-not-found")) {
-          errorMessage = "Utilisateur non trouvé";
-        } else if (error.message.includes("auth/too-many-requests")) {
-          errorMessage = "Trop de tentatives. Réessayez plus tard.";
-        } else if (error.message.includes("auth/user-disabled")) {
-          errorMessage = "Ce compte est désactivé";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-
-      toast.error(errorMessage);
+      
     } finally {
       console.log("Fin connexion");
       setIsLoading(false);
@@ -413,15 +385,13 @@ const LoginPage: React.FC = () => {
         console.error("Erreur FCM Google non bloquante:", error);
       });
 
-      toast.success("Connexion Google réussie !");
+      
 
       const redirectTo = location.state?.from || (userData.role === "admin" ? "/admin" : "/");
       navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
       console.error("Erreur Google login:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Erreur lors de la connexion avec Google";
-      toast.error(errorMessage);
+      
     } finally {
       setIsLoading(false);
     }

@@ -420,9 +420,7 @@ app.post('/api/auth/signin', async (req, res) => {
     // Envoyer notification de connexion
     await sendNotification(
       userRecord.uid,
-      'Connexion réussie',
-      'Vous êtes connecté à votre compte Dynamism Express.',
-      'LOGIN'
+      'Vous êtes connecté à votre compte Dynamism Express.'
     );
 
     const customToken = await auth.createCustomToken(userRecord.uid);
@@ -521,9 +519,7 @@ app.post('/api/auth/signin-google', async (req, res) => {
     // Envoyer notification de connexion
     await sendNotification(
       uid,
-      'Connexion avec Google',
-      'Vous êtes connecté à votre compte via Google.',
-      'LOGIN'
+      'Vous êtes connecté à votre compte via Google.'
     );
 
     const customToken = await auth.createCustomToken(uid);

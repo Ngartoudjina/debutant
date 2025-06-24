@@ -118,12 +118,12 @@ const Reserv = () => {
           const data = settingsDoc.data();
           setPricePerKg(data.deliveryPrices?.weight || 2.5);
         } else {
-          toast.error('Paramètres de prix non trouvés');
+          
           setPricePerKg(2.5);
         }
       } catch (error) {
         console.error('Erreur lors de la récupération du prix:', error);
-        toast.error('Erreur lors de la récupération des paramètres de prix');
+        
         setPricePerKg(2.5);
       }
     };
@@ -156,7 +156,7 @@ const Reserv = () => {
         }
       } catch (error: any) {
         console.error('Erreur lors de la récupération des coursiers:', error);
-        toast.error(error.message || 'Impossible de charger les coursiers disponibles');
+        
       }
     };
     fetchCouriers();
@@ -207,7 +207,7 @@ const Reserv = () => {
       calculateCost(calculatedDistance, pickupCoords, deliveryCoords);
     } catch (error: any) {
       console.error('Erreur lors de la géocodification:', error);
-      toast.error(error.message || 'Impossible de localiser les adresses. Veuillez vérifier les adresses saisies.');
+      
       setPickupCoords(null);
       setDeliveryCoords(null);
       setMarkers([]);
@@ -368,7 +368,7 @@ const Reserv = () => {
       setSelectedCourierId(couriers.length > 0 ? couriers[0].id : null);
     } catch (error: any) {
       console.error('Erreur lors de la réservation:', error);
-      toast.error(error.message || 'Erreur lors de la réservation');
+      
     } finally {
       setIsLoading(false);
     }

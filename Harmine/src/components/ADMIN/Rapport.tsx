@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2 } from 'lucide-react';
 import { Label } from "@/components/ui/label";
 import { toast } from 'react-toastify';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { motion } from "framer-motion";
 
 interface Order {
   id: string;
@@ -43,7 +44,7 @@ const Rapport: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
 
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('authToken');
@@ -51,7 +52,6 @@ const Rapport: React.FC = () => {
         throw new Error('Aucun token d\'authentification trouvé');
       }
 
-      // Récupérer les commandes
       const ordersResponse = await fetch('https://debutant.onrender.com/api/commandes', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -59,15 +59,14 @@ const Rapport: React.FC = () => {
       });
 
       if (!ordersResponse.ok) {
-        const errorData = await ordersResponse.json();
+        const errorData = await ordersResponse.json().catch(() => ({ error: "Erreur de communication" }));
         throw new Error(errorData.error || 'Erreur lors de la récupération des commandes');
       }
 
       const ordersData = await ordersResponse.json();
-      const fetchedOrders: Order[] = ordersData.data;
+      const fetchedOrders: Order[] = ordersData.data || [];
       setOrders(fetchedOrders);
 
-      // Récupérer les clients
       const clientsResponse = await fetch('https://debutant.onrender.com/api/clients', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -75,12 +74,12 @@ const Rapport: React.FC = () => {
       });
 
       if (!clientsResponse.ok) {
-        const errorData = await clientsResponse.json();
+        const errorData = await clientsResponse.json().catch(() => ({ error: "Erreur de communication" }));
         throw new Error(errorData.error || 'Erreur lors de la récupération des clients');
       }
 
       const clientsData = await clientsResponse.json();
-      setClients(clientsData.data);
+      setClients(clientsData.data || []);
 
       // Calculer les métriques
       const now = new Date();
@@ -105,7 +104,7 @@ const Rapport: React.FC = () => {
 
       const totalOrders = filteredOrders.length;
       const totalRevenue = filteredOrders.reduce(
-        (sum, order) => sum + parseFloat(order.amount.replace(' €', '')),
+        (sum, order) => sum + parseFloat(order.amount.replace(' €', '') || '0'),
         0
       );
       const deliveredOrders = filteredOrders.filter(
@@ -122,7 +121,7 @@ const Rapport: React.FC = () => {
           acc[date] = { count: 0, revenue: 0 };
         }
         acc[date].count += 1;
-        acc[date].revenue += parseFloat(order.amount.replace(' €', ''));
+        acc[date].revenue += parseFloat(order.amount.replace(' €', '') || '0');
         return acc;
       }, {} as Record<string, { count: number; revenue: number }>);
 
@@ -138,18 +137,17 @@ const Rapport: React.FC = () => {
         ordersByDate,
       });
 
-      toast.success('Rapport chargé avec succès');
+      
     } catch (error: any) {
-      console.error('Erreur lors du chargement du rapport:', error);
-      toast.error(error.message || 'Erreur lors du chargement du rapport');
+      console.error(error.message || 'Erreur lors du chargement du rapport');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [period]);
 
   useEffect(() => {
     fetchReportData();
-  }, [period]);
+  }, [fetchReportData]);
 
   const handleExportCSV = () => {
     const headers = ['ID Commande', 'Date', 'Montant', 'Statut', 'Client'];
@@ -177,31 +175,31 @@ const Rapport: React.FC = () => {
     link.click();
     document.body.removeChild(link);
 
-    toast.success('Rapport exporté en CSV');
+    
   };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Chargement du rapport...</span>
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="ml-2 text-sm sm:text-base">Chargement du rapport...</span>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Rapport d'activité</CardTitle>
+    <div className="w-full p-3 sm:p-4 md:p-6 space-y-4">
+      <Card className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader className="p-3 sm:p-4">
+          <CardTitle className="text-lg sm:text-xl">Rapport d'activité</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="p-3 sm:p-4 space-y-4">
           {/* Filtres */}
-          <div className="flex items-center space-x-4">
-            <div className="space-y-2">
-              <Label>Période</Label>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="space-y-1.5 w-full sm:w-auto">
+              <Label className="text-sm">Période</Label>
               <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px] h-8 sm:h-9 text-sm">
                   <SelectValue placeholder="Sélectionner une période" />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,105 +210,116 @@ const Rapport: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleExportCSV} className="mt-6">
-              Exporter en CSV
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={handleExportCSV}
+                className="h-8 sm:h-9 text-sm mr-2 sm:mr-3"
+              >
+                Exporter en CSV
+              </Button>
+            </motion.div>
           </div>
 
           {/* Métriques clés */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="w-full">
+              <CardHeader className="p-3 sm:p-4">
                 <CardTitle className="text-sm">Total des commandes</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{reportData.totalOrders}</p>
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-lg sm:text-xl font-bold">{reportData.totalOrders}</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
+            <Card className="w-full">
+              <CardHeader className="p-3 sm:p-4">
                 <CardTitle className="text-sm">Revenus totaux</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{reportData.totalRevenue.toFixed(2)} €</p>
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-lg sm:text-xl font-bold">{reportData.totalRevenue.toFixed(2)} €</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
+            <Card className="w-full">
+              <CardHeader className="p-3 sm:p-4">
                 <CardTitle className="text-sm">Commandes livrées</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{reportData.deliveredOrders}</p>
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-lg sm:text-xl font-bold">{reportData.deliveredOrders}</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
+            <Card className="w-full">
+              <CardHeader className="p-3 sm:p-4">
                 <CardTitle className="text-sm">Clients actifs</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{reportData.activeClients}</p>
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-lg sm:text-xl font-bold">{reportData.activeClients}</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Graphique */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Évolution des commandes et revenus</CardTitle>
+          <Card className="w-full">
+            <CardHeader className="p-3 sm:p-4">
+              <CardTitle className="text-sm sm:text-base">Évolution des commandes et revenus</CardTitle>
             </CardHeader>
-            <CardContent>
-              <LineChart width={600} height={300} data={reportData.ordersByDate}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="count" name="Commandes" stroke="#8884d8" />
-                <Line yAxisId="right" type="monotone" dataKey="revenue" name="Revenus (€)" stroke="#82ca9d" />
-              </LineChart>
+            <CardContent className="p-3 sm:p-4">
+              <div className="w-full overflow-x-auto">
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={reportData.ordersByDate}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Line yAxisId="left" type="monotone" dataKey="count" name="Commandes" stroke="#8884d8" />
+                    <Line yAxisId="right" type="monotone" dataKey="revenue" name="Revenus (€)" stroke="#82ca9d" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
 
           {/* Tableau des commandes récentes */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Commandes récentes</CardTitle>
+          <Card className="w-full">
+            <CardHeader className="p-3 sm:p-4">
+              <CardTitle className="text-sm sm:text-base">Commandes récentes</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID Commande</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Montant</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Client</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.length === 0 ? (
+            <CardContent className="p-0">
+              <div className="w-full overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-6 text-gray-500">
-                        Aucune commande disponible
-                      </TableCell>
+                      <TableHead className="text-xs sm:text-sm">ID Commande</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Date</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Montant</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Statut</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Client</TableHead>
                     </TableRow>
-                  ) : (
-                    orders.slice(0, 10).map((order) => {
-                      const client = clients.find((c) => c.id === order.clientId);
-                      return (
-                        <TableRow key={order.id}>
-                          <TableCell>{order.id}</TableCell>
-                          <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{order.amount}</TableCell>
-                          <TableCell>{order.status}</TableCell>
-                          <TableCell>{client ? client.name : 'Inconnu'}</TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-4 text-gray-500 text-xs sm:text-sm">
+                          Aucune commande disponible
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      orders.slice(0, 10).map((order) => {
+                        const client = clients.find((c) => c.id === order.clientId);
+                        return (
+                          <TableRow key={order.id}>
+                            <TableCell className="text-xs sm:text-sm">{order.id}</TableCell>
+                            <TableCell className="text-xs sm:text-sm">{new Date(order.date).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-xs sm:text-sm">{order.amount}</TableCell>
+                            <TableCell className="text-xs sm:text-sm">{order.status}</TableCell>
+                            <TableCell className="text-xs sm:text-sm">{client ? client.name : 'Inconnu'}</TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </CardContent>

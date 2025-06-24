@@ -110,7 +110,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ darkMode, toggleDarkMode }) =
       {/* Bouton Commandes */}
       <motion.div variants={buttonVariants}>
         <Link
-          to="/commandes"
+          to="/reserv"
           className="block p-3 sm:p-4 rounded-full bg-white dark:bg-gray-800 border-2 border-orange-500 dark:border-orange-400 shadow-lg hover:shadow-xl hover:shadow-orange-500/20 dark:hover:shadow-orange-400/20 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all duration-300"
           aria-label="Accéder à la page des commandes"
         >

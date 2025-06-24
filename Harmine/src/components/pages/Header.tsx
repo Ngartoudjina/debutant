@@ -296,10 +296,10 @@ export default function Header() {
                   borderColor: "rgba(255, 255, 255, 0.3)",
                 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate("/coursier")} // Updated to use navigate
+                onClick={() => navigate("/reserv")} // Updated to use navigate
                 className="group relative inline-flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 rounded-full backdrop-blur-lg transition-colors font-medium cursor-pointer"
               >
-                <span>Devenir Coursier</span>
+                <span>Commander</span>
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
                   initial={{ x: "-100%" }}

@@ -22,7 +22,6 @@ import "react-phone-input-2/lib/style.css";
 import axios, { AxiosError } from "axios";
 import type { User as FirebaseUser } from "firebase/auth";
 
-// Interfaces
 interface SignupFormData {
   firstName: string;
   lastName: string;
@@ -136,7 +135,6 @@ const SignupPage: React.FC = () => {
 
       if (permission !== "granted") {
         console.warn("⚠️ Permission notifications refusée");
-        toast.warn("Les notifications sont désactivées. Activez-les pour recevoir des mises à jour.");
       }
 
       const messaging = await getMessagingInstance();
@@ -178,7 +176,7 @@ const SignupPage: React.FC = () => {
             console.log("✅ Token FCM généré:", fcmToken.substring(0, 20) + "...");
             onMessage(messaging, (payload) => {
               console.log("📨 Notification reçue:", payload);
-              toast.info(`${payload.notification?.title}: ${payload.notification?.body}`);
+              
             });
           } else {
             console.warn("⚠️ Token FCM vide");
@@ -342,26 +340,7 @@ const SignupPage: React.FC = () => {
       }, 500);
     } catch (error: unknown) {
       console.error("❌ Erreur inscription:", error);
-      let errorMessage = "Erreur lors de l'inscription";
-
-      if (error instanceof AxiosError && error.response) {
-        const { status, data } = error.response;
-        if (status === 400) {
-          errorMessage = data.error || "Données invalides";
-        } else if (status === 409) {
-          errorMessage = "Email déjà utilisé";
-        } else if (status === 500) {
-          errorMessage = "Erreur serveur, veuillez réessayer";
-        }
-      } else if (error instanceof Error) {
-        if (error.message.includes("ECONNABORTED")) {
-          errorMessage = "Timeout: Le serveur met trop de temps à répondre";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-
-      toast.error(errorMessage);
+      
     } finally {
       console.log("🏁 Fin du processus d'inscription");
       setIsLoading(false);

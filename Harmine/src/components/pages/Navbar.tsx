@@ -42,7 +42,7 @@ const components: ComponentItem[] = [
     title: 'À propos',
     href: '/propos',
     description:
-      'Découvrez notre mission et notre engagement envers l’excellence du service de livraison.',
+      'Découvrez notre mission et notre engagement envers lexcellence du service de livraison.',
     icon: <Package className="h-4 w-4" />,
   },
   {
@@ -223,15 +223,15 @@ export default function Navbar(): JSX.Element {
             : 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-md'
         }`}
       >
-        <div className="container mx-auto flex justify-between items-center sm:px-10 sm:py-4 p-4">
+        <div className="container mx-auto flex justify-between items-center px-4 py-3 sm:px-6 sm:py-4">
           {/* Logo */}
           <a href="/" className="flex items-center group">
             <img
               src={logo}
               alt="Logo"
-              className="w-16 h-16 transition-transform group-hover:scale-105"
+              className="w-14 h-14 sm:w-16 sm:h-16 transition-transform group-hover:scale-105"
             />
-            <span className="ml-2 text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+            <span className="ml-2 text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
               Dynamism Express
             </span>
           </a>
@@ -241,6 +241,7 @@ export default function Navbar(): JSX.Element {
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded-full hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Toggle dark mode"
             >
               {isDarkMode ? (
                 <Sun className="w-6 h-6 text-yellow-400" />
@@ -271,20 +272,20 @@ export default function Navbar(): JSX.Element {
             onClick={toggleMenu}
             aria-label="Toggle menu"
           >
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div
-                className={`w-8 h-1 bg-gray-800 dark:bg-gray-100 transition-transform duration-300 ${
-                  isMenuOpen ? 'rotate-45 translate-y-1.5' : ''
+                className={`w-7 h-0.5 bg-gray-800 dark:bg-gray-100 transition-transform duration-300 ${
+                  isMenuOpen ? 'rotate-45 translate-y-2' : ''
                 }`}
               ></div>
               <div
-                className={`w-8 h-1 bg-gray-800 dark:bg-gray-100 transition-opacity duration-300 ${
+                className={`w-7 h-0.5 bg-gray-800 dark:bg-gray-100 transition-opacity duration-300 ${
                   isMenuOpen ? 'opacity-0' : ''
                 }`}
               ></div>
               <div
-                className={`w-8 h-1 bg-gray-800 dark:bg-gray-100 transition-transform duration-300 ${
-                  isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''
+                className={`w-7 h-0.5 bg-gray-800 dark:bg-gray-100 transition-transform duration-300 ${
+                  isMenuOpen ? '-rotate-45 -translate-y-2' : ''
                 }`}
               ></div>
             </div>
@@ -354,7 +355,7 @@ export default function Navbar(): JSX.Element {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent className="w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                     <div className="p-4">
-                      <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-100">
+                      <h3 className="font-medium mb-3 text-gray-900 dark:text-gray-100">
                         Rejoignez notre équipe
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -376,9 +377,9 @@ export default function Navbar(): JSX.Element {
                       </ul>
                       <a
                         href="/coursier"
-                        className="block w-full text-center bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors rounded-md"
+                        className="block w-full text-center bg-blue-600 px-4 py-2 text-sm font-medium transition-colors rounded-md text-white hover:bg-blue-700"
                       >
-                        S'inscrire comme coursier
+                        Inscription comme partenaire
                       </a>
                     </div>
                   </NavigationMenuContent>
@@ -400,61 +401,62 @@ export default function Navbar(): JSX.Element {
 
       {/* Mobile menu */}
       <div
-        className={`fixed inset-0 z-[60] transition-all duration-200 ease-in-out md:hidden ${
+        className={`fixed inset-0 z-[60] transition-all duration-300 ease-in-out md:hidden ${
           isMenuOpen
             ? 'opacity-100 translate-x-0'
-            : 'opacity-0 translate-x-full invisible'
+            : 'opacity-0 translate-x-full hidden'
         }`}
       >
         {/* Fond semi-transparent */}
         <div
-          className="absolute inset-0 bg-black/50"
+          className="absolute inset-0 bg-gray-900/70 backdrop-blur-sm"
           onClick={toggleMenu}
+          role="button"
+          tabIndex={0}
+          aria-label="Close mobile menu"
         ></div>
-        <div className="relative h-full max-w-md ml-auto bg-white dark:bg-gray-900 overflow-y-auto pt-24 pb-6 px-6">
+        <div className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto pt-16 pb-8 px-5 sm:px-6">
           <button
-            className="absolute top-4 right-6 p-3 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors z-[70]"
+            className="fixed top-4 right-4 p-2.5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors z-[70]"
             onClick={toggleMenu}
             aria-label="Close menu"
           >
             <svg
-              className="w-6 h-6 text-gray-600 dark:text-gray-300"
+              className="w-5 h-5 text-gray-600 dark:text-gray-300"
               fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
-              stroke="currentColor"
             >
-              <path d="M6 18L18 6M6 6l12 12"></path>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
 
-          <div className="space-y-6">
+          <div className="space-y-5">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem
                 value="services"
                 className="border-b border-gray-200 dark:border-gray-700"
               >
-                <AccordionTrigger className="text-xl font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
+                <AccordionTrigger className="text-lg font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 py-3">
                   Services
                 </AccordionTrigger>
-                <AccordionContent className="space-y-4">
+                <AccordionContent className="space-y-3 pl-4">
                   <a
                     href="/reserv"
-                    className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    className="block py-2 text-base text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
                     Réservation express
                   </a>
                   <a
                     href="/suivi"
-                    className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    className="block py-2 text-base text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
                     Suivi en temps réel
                   </a>
                   <a
                     href="/entreprise"
-                    className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    className="block py-2 text-base text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
                     Solutions entreprise
                   </a>
@@ -465,15 +467,15 @@ export default function Navbar(): JSX.Element {
                 value="resources"
                 className="border-b border-gray-200 dark:border-gray-700"
               >
-                <AccordionTrigger className="text-xl font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
+                <AccordionTrigger className="text-lg font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 py-3">
                   Ressources
                 </AccordionTrigger>
-                <AccordionContent className="space-y-4">
+                <AccordionContent className="space-y-3 pl-4">
                   {components.map((component) => (
                     <a
                       key={component.title}
                       href={component.href}
-                      className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      className="block py-2 text-base text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
                       <span className="flex items-center gap-2">
                         {component.icon}
@@ -488,7 +490,7 @@ export default function Navbar(): JSX.Element {
                 value="courier"
                 className="border-b border-gray-200 dark:border-gray-700"
               >
-                <AccordionTrigger className="text-xl font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
+                <AccordionTrigger className="text-lg font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 py-3">
                   Devenir coursier
                 </AccordionTrigger>
                 <AccordionContent>
@@ -521,33 +523,34 @@ export default function Navbar(): JSX.Element {
               </AccordionItem>
             </Accordion>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <a
                 href="/login"
-                className="block w-full text-center bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors"
+                className="block w-full text-center bg-blue-600 text-white py-2.5 rounded-md hover:bg-blue-700 transition-colors text-base"
               >
                 Se connecter
               </a>
               <button
-                className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-md hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-md hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
                 onClick={handleNotificationsClick}
                 aria-label="Ouvrir les notifications"
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-2 text-base">
                   <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                   Notifications
                 </span>
                 {notificationsCount > 0 && (
-                  <Badge variant="default" className="bg-red-500">
+                  <Badge variant="default" className="bg-red-500 text-sm">
                     {notificationsCount}
                   </Badge>
                 )}
               </button>
               <button
                 onClick={toggleDarkMode}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-md hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-md hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                aria-label={isDarkMode ? 'Activer mode clair' : 'Activer mode sombre'}
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-2 text-base">
                   {isDarkMode ? (
                     <Sun className="h-5 w-5 text-yellow-400" />
                   ) : (

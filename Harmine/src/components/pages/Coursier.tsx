@@ -20,9 +20,8 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import debounce from "lodash/debounce";
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
-import { authStateObserver } from '../../../firebaseConfig'; // Remplacez par le chemin correct
+import { authStateObserver } from '../../../firebaseConfig'; 
 
-// Configuration des fichiers
 const FILE_CONFIG = {
   idDocument: {
     maxSize: 5 * 1024 * 1024,
@@ -50,7 +49,6 @@ const FILE_CONFIG = {
   }
 };
 
-// Fonctions de validation séparées
 const validateTextLength = (value: string, min: number, max: number): string => {
   if (value.trim().length < min) return `Le texte doit contenir au moins ${min} caractères`;
   if (value.trim().length > max) return `Le texte ne doit pas dépasser ${max} caractères`;
@@ -93,7 +91,6 @@ type ValidationErrors = {
   [K in keyof FormData]?: string;
 };
 
-// État initial du formulaire pour réinitialisation
 const initialFormData: FormData = {
   fullName: "",
   email: "",
@@ -116,9 +113,9 @@ const Courier: React.FC = () => {
     [key: string]: string;
   }>({});
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null); // État pour l'utilisateur connecté
+  const [currentUser, setCurrentUser] = useState<any>(null); 
 
-  // Gestion du mode sombre
+
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle("dark");
@@ -134,20 +131,19 @@ const Courier: React.FC = () => {
       setDarkMode((prev) => !prev);
     };
 
-  // Observer l'état d'authentification
+
   useEffect(() => {
     const unsubscribe = authStateObserver(({ user, isAuthenticated }) => {
       if (isAuthenticated && user) {
         setCurrentUser(user);
       } else {
         setCurrentUser(null);
-        toast.error("Veuillez vous connecter pour soumettre votre candidature.");
+        
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // Nettoyage des URLs de prévisualisation
   useEffect(() => {
     return () => {
       Object.values(filePreviewUrls).forEach((url) => {
@@ -281,20 +277,15 @@ const Courier: React.FC = () => {
   
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      toast.error("Veuillez corriger les erreurs dans le formulaire");
+      
       return;
     }
   
-    // Vérifier si un utilisateur est connecté
-    if (!currentUser) {
-      toast.error("Vous devez être connecté pour soumettre votre candidature.");
-      return;
-    }
   
     setIsSubmitting(true);
   
     try {
-      // Obtenir le token Firebase
+      
       const idToken = await currentUser.getIdToken();
       if (!idToken) {
         throw new Error("Impossible d'obtenir le token d'authentification");
@@ -341,8 +332,6 @@ const Courier: React.FC = () => {
         body: formDataToSend,
         headers: {
           Authorization: `Bearer ${idToken}`,
-          // CORRECTION: Ne pas ajouter le Content-Type pour FormData avec des fichiers
-          // Le navigateur ajoutera automatiquement le bon Content-Type avec boundary
         },
       });
   
@@ -360,7 +349,6 @@ const Courier: React.FC = () => {
       setFilePreviewUrls({});
     } catch (error) {
       console.error("Erreur de soumission complète:", error);
-      toast.error(error instanceof Error ? error.message : "Erreur de soumission");
     } finally {
       setIsSubmitting(false);
     }

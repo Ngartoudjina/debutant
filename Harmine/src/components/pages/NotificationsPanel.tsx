@@ -5,11 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { X, Bell } from 'lucide-react';
-import { toast } from 'react-toastify';
 import { format, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../../firebaseConfig'; // Import depuis firebaseConfig
+import { db } from '../../../firebaseConfig';
 import { Notification } from '../types/notification';
 
 interface NotificationsPanelProps {
@@ -60,7 +59,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ notifications, 
         console.log('✅ Notification marquée comme lue');
       } catch (err) {
         console.error('❌ Erreur marquage notification:', err);
-        toast.warn('Impossible de marquer la notification comme lue');
+        
       }
     },
     []
