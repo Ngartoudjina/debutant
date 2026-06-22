@@ -1,4 +1,5 @@
-import React from 'react';
+﻿import React from 'react';
+import { API_URL } from '../pages/config';
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Edit, Trash, Check } from 'lucide-react';
 import { Courier, COURIER_STATUS } from './types';
@@ -32,7 +33,7 @@ export const CourierTable: React.FC<CourierTableProps> = ({
         throw new Error("Aucun token d'authentification trouvé");
       }
 
-      const response = await fetch(`https://debutant.onrender.com/api/coursiers/${courierId}/approve`, {
+      const response = await fetch(`${API_URL}/api/coursiers/${courierId}/approve`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

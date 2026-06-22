@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { API_URL } from './config';
+import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Package, Clock, Truck, CreditCard, Calendar, AlertCircle, MapPin, Info, Moon, Sun, Scale, User } from 'lucide-react';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import Navbar from './Navbar';
@@ -14,7 +15,7 @@ import { db } from '../../../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 import ThemeToggle from './ThemeToggle';
 
 // Types
@@ -84,31 +85,15 @@ const Reserv = () => {
   const [pickupCoords, setPickupCoords] = useState<Coordinates | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<Coordinates | null>(null);
   const [costEstimate, setCostEstimate] = useState(0);
+  const { isDarkMode: darkMode } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [markers, setMarkers] = useState<[number, number][]>([]);
   const [estimatedTime, setEstimatedTime] = useState('');
-  const [darkMode, setDarkMode] = useState(false);
   const [pricePerKg, setPricePerKg] = useState(0);
   const [distance, setDistance] = useState(0);
   const [couriers, setCouriers] = useState<Courier[]>([]);
   const [selectedCourierId, setSelectedCourierId] = useState<string | null>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
-  }, [darkMode]);
-
-  const toggleDarkMode = () => {
-    setDarkMode((prev) => !prev);
-    localStorage.setItem('theme', darkMode ? 'light' : 'dark');
-  };
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setDarkMode(true);
-    }
-  }, []);
 
   useEffect(() => {
     const fetchPricePerKg = async () => {
@@ -121,9 +106,7 @@ const Reserv = () => {
           
           setPricePerKg(2.5);
         }
-      } catch (error) {
-        console.error('Erreur lors de la récupération du prix:', error);
-        
+      } catch {
         setPricePerKg(2.5);
       }
     };
@@ -140,7 +123,7 @@ const Reserv = () => {
         }
 
         const token = await user.getIdToken();
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/truecoursiers/available`, {
+        const response = await fetch(`${API_URL}/api/truecoursiers/available`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -154,9 +137,8 @@ const Reserv = () => {
         if (result.data && result.data.length > 0) {
           setSelectedCourierId(result.data[0].id);
         }
-      } catch (error: any) {
-        console.error('Erreur lors de la récupération des coursiers:', error);
-        
+      } catch {
+        // couriers fetch failed — handled silently
       }
     };
     fetchCouriers();
@@ -205,9 +187,7 @@ const Reserv = () => {
       const calculatedDistance = calculateDistance(pickupCoords, deliveryCoords);
       setDistance(calculatedDistance);
       calculateCost(calculatedDistance, pickupCoords, deliveryCoords);
-    } catch (error: any) {
-      console.error('Erreur lors de la géocodification:', error);
-      
+    } catch {
       setPickupCoords(null);
       setDeliveryCoords(null);
       setMarkers([]);
@@ -215,7 +195,12 @@ const Reserv = () => {
     }
   };
 
-  const debouncedGeocodeAddresses = debounce(geocodeAddresses, 1000);
+  const geocodeAddressesRef = useRef(geocodeAddresses);
+  useEffect(() => { geocodeAddressesRef.current = geocodeAddresses; });
+  const debouncedGeocodeAddresses = useCallback(
+    debounce((...args: Parameters<typeof geocodeAddresses>) => geocodeAddressesRef.current(...args), 1000),
+    []
+  );
 
   const calculateDistance = (coords1: Coordinates, coords2: Coordinates) => {
     const toRad = (value: number) => (value * Math.PI) / 180;
@@ -238,7 +223,7 @@ const Reserv = () => {
       medium: 5,
       large: 10,
     };
-    setFormData(prev => ({ ...prev, weight: weights[formData.packageType] }));
+    setFormData(prev => ({ ...prev, weight: weights[prev.packageType] || prev.weight }));
   }, [formData.packageType]);
 
   const calculateCost = (calculatedDistance: number, pickup: Coordinates | null, delivery: Coordinates | null) => {
@@ -327,7 +312,7 @@ const Reserv = () => {
         courierId: selectedCourierId,
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/commandes/create`, {
+      const response = await fetch(`${API_URL}/api/commandes/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -366,9 +351,8 @@ const Reserv = () => {
       setMarkers([]);
       setDistance(0);
       setSelectedCourierId(couriers.length > 0 ? couriers[0].id : null);
-    } catch (error: any) {
-      console.error('Erreur lors de la réservation:', error);
-      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la réservation");
     } finally {
       setIsLoading(false);
     }
@@ -377,27 +361,12 @@ const Reserv = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:via-gray-900 dark:to-blue-900">
       <Navbar />
-      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <ToastContainer position="top-right" autoClose={5000} theme={darkMode ? 'dark' : 'light'} />
+      <ThemeToggle />
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 relative"
       >
-        <div className="flex justify-end mb-4">
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? (
-              <Sun className="w-6 h-6 text-yellow-400" />
-            ) : (
-              <Moon className="w-6 h-6 text-gray-600 dark:text-gray-100" />
-            )}
-          </button>
-        </div>
-
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-300 dark:to-purple-500">
             Réserver un coursier
@@ -414,12 +383,13 @@ const Reserv = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                  <label htmlFor="pickupAddress" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                     Adresse de prise en charge
                   </label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
                     <input
+                      id="pickupAddress"
                       type="text"
                       value={formData.pickupAddress}
                       onChange={(e) => setFormData(prev => ({ ...prev, pickupAddress: e.target.value }))}
@@ -434,12 +404,13 @@ const Reserv = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                  <label htmlFor="deliveryAddress" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                     Adresse de livraison
                   </label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
                     <input
+                      id="deliveryAddress"
                       type="text"
                       value={formData.deliveryAddress}
                       onChange={(e) => setFormData(prev => ({ ...prev, deliveryAddress: e.target.value }))}
@@ -455,12 +426,13 @@ const Reserv = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                    <label htmlFor="packageType" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                       Type de colis
                     </label>
                     <div className="relative">
                       <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
                       <select
+                        id="packageType"
                         value={formData.packageType}
                         onChange={(e) => setFormData(prev => ({ ...prev, packageType: e.target.value as DeliveryFormData['packageType'] }))}
                         className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
@@ -473,12 +445,13 @@ const Reserv = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                    <label htmlFor="packageWeight" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                       Poids du colis (kg)
                     </label>
                     <div className="relative">
                       <Scale className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
                       <input
+                        id="packageWeight"
                         type="number"
                         value={formData.weight}
                         onChange={(e) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
@@ -493,12 +466,13 @@ const Reserv = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                  <label htmlFor="urgency" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                     Urgence
                   </label>
                   <div className="relative">
                     <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
                     <select
+                      id="urgency"
                       value={formData.urgency}
                       onChange={(e) => setFormData(prev => ({ ...prev, urgency: e.target.value as DeliveryFormData['urgency'] }))}
                       className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
@@ -511,12 +485,13 @@ const Reserv = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                  <label htmlFor="scheduledDate" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                     Date et heure de prise en charge
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300" size={20} />
                     <DatePicker
+                      id="scheduledDate"
                       selected={formData.scheduledDate}
                       onChange={(date: Date | null) => {
                         if (date) {
@@ -532,10 +507,11 @@ const Reserv = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                  <label htmlFor="specialInstructions" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                     Instructions spéciales
                   </label>
                   <textarea
+                    id="specialInstructions"
                     value={formData.specialInstructions}
                     onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
                     className="w-full p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"

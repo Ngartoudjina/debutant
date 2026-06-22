@@ -7,17 +7,9 @@
       "config": {
         "distDir": "Harmine/dist"
       }
-    },
-    {
-      "src": "server/api/upload.mjs",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/server/api/upload.mjs"
-    },
     {
       "src": "/(.*)",
       "dest": "/Harmine/dist/$1"

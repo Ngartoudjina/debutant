@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { Sparkles, ChevronRight, PhoneCall, Award, Zap, Shield, Clock, LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom"; // Added for navigation
@@ -22,6 +22,43 @@ interface Stat {
   bgGradient: string;
 }
 
+// Animation variants (module-level — stable references, no re-creation on each render)
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 60, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 80,
+      damping: 20,
+      mass: 1,
+    },
+  },
+};
+
+const floatingAnimation = {
+  y: [0, -15, 0],
+  rotate: [0, 2, 0],
+  transition: {
+    duration: 6,
+    repeat: Infinity,
+    ease: "easeInOut",
+  },
+};
+
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
@@ -31,6 +68,17 @@ export default function Header() {
   // Parallax effects
   const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
   const textY = useTransform(scrollY, [0, 500], [0, -50]);
+
+  // Memoised particles — random values computed once, not on every render
+  const particles = useMemo(() =>
+    Array.from({ length: 15 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 800,
+      y: Math.random() * 600,
+      duration: 8 + Math.random() * 4,
+      delay: Math.random() * 5,
+    })),
+  []);
 
   useEffect(() => {
     const checkScroll = () => setIsScrolled(window.innerWidth > 400);
@@ -53,43 +101,6 @@ export default function Header() {
       window.removeEventListener("mousemove", handleMouseMove);
     };
   }, []);
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.2,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 60, scale: 0.9 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 80,
-        damping: 20,
-        mass: 1,
-      },
-    },
-  };
-
-  const floatingAnimation = {
-    y: [0, -15, 0],
-    rotate: [0, 2, 0],
-    transition: {
-      duration: 6,
-      repeat: Infinity,
-      ease: "easeInOut",
-    },
-  };
 
   const stats: Stat[] = [
     {
@@ -149,24 +160,21 @@ export default function Header() {
         />
 
         {/* Floating particles */}
-        {[...Array(15)].map((_, i) => (
+        {particles.map((p) => (
           <motion.div
-            key={i}
+            key={p.id}
             className="absolute w-1 h-1 bg-blue-400/40 rounded-full"
-            initial={{
-              x: Math.random() * (typeof window !== "undefined" ? window.innerWidth : 800),
-              y: Math.random() * (typeof window !== "undefined" ? window.innerHeight : 600),
-            }}
+            initial={{ x: p.x, y: p.y }}
             animate={{
               y: [0, -80, 0],
-              x: [0, Math.random() * 60 - 30, 0],
+              x: [0, 30, 0],
               opacity: [0, 1, 0],
               scale: [0.5, 1, 0.5],
             }}
             transition={{
-              duration: 8 + Math.random() * 4,
+              duration: p.duration,
               repeat: Infinity,
-              delay: Math.random() * 5,
+              delay: p.delay,
               ease: "easeInOut",
             }}
           />
@@ -260,13 +268,14 @@ export default function Header() {
 
             {/* Enhanced Action Buttons */}
             <motion.div variants={itemVariants} className="flex flex-wrap gap-6 mt-8">
-              <motion.div
+              <motion.button
+                type="button"
                 whileHover={{
                   scale: 1.05,
                   boxShadow: "0 20px 40px rgba(59, 130, 246, 0.4)",
                 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate("/propos")} // Updated to use navigate
+                onClick={() => navigate("/propos")}
                 className="group relative inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full overflow-hidden font-medium cursor-pointer"
               >
                 <span className="relative z-10">En savoir plus</span>
@@ -287,16 +296,17 @@ export default function Header() {
                   animate={{ x: ["-100%", "100%"] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                 />
-              </motion.div>
+              </motion.button>
 
-              <motion.div
+              <motion.button
+                type="button"
                 whileHover={{
                   scale: 1.05,
                   backgroundColor: "rgba(255, 255, 255, 0.15)",
                   borderColor: "rgba(255, 255, 255, 0.3)",
                 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate("/reserv")} // Updated to use navigate
+                onClick={() => navigate("/reserv")}
                 className="group relative inline-flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 rounded-full backdrop-blur-lg transition-colors font-medium cursor-pointer"
               >
                 <span>Commander</span>
@@ -306,7 +316,7 @@ export default function Header() {
                   whileHover={{ x: "100%" }}
                   transition={{ duration: 1 }}
                 />
-              </motion.div>
+              </motion.button>
             </motion.div>
 
             {/* Enhanced Statistics */}
@@ -335,11 +345,7 @@ export default function Header() {
                     animate={{
                       scale: [1, 1.1, 1],
                       rotate: [0, 3, -3, 0],
-                      boxShadow: [
-                        "0 0 20px rgba(255,255,255,0.1)",
-                        "0 0 30px rgba(255,255,255,0.2)",
-                        "0 0 20px rgba(255,255,255,0.1)",
-                      ],
+                      opacity: [0.7, 1, 0.7],
                     }}
                     transition={{
                       duration: 4,
@@ -511,11 +517,7 @@ export default function Header() {
                           className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"
                           animate={{
                             scale: [1, 1.3, 1],
-                            boxShadow: [
-                              "0 0 0 0 rgba(34, 197, 94, 0.7)",
-                              "0 0 0 8px rgba(34, 197, 94, 0)",
-                              "0 0 0 0 rgba(34, 197, 94, 0)",
-                            ],
+                            opacity: [0.7, 1, 0.7],
                           }}
                           transition={{ duration: 2, repeat: Infinity }}
                         />
@@ -562,11 +564,7 @@ export default function Header() {
                     <motion.div
                       className="bg-gradient-to-br from-yellow-400 to-orange-500 w-16 h-16 md:w-20 md:h-20 rounded-xl flex items-center justify-center shadow-2xl"
                       animate={{
-                        boxShadow: [
-                          "0 0 20px rgba(251, 191, 36, 0.5)",
-                          "0 0 40px rgba(251, 191, 36, 0.8)",
-                          "0 0 20px rgba(251, 191, 36, 0.5)",
-                        ],
+                        opacity: [0.7, 1, 0.7],
                         scale: [1, 1.05, 1],
                       }}
                       transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}

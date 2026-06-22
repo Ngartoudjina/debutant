@@ -1,66 +1,68 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import App from "./App";
-import SignIn from "./components/pages/SignIn";
-import SignUp from "./components/pages/SignUp";
-import Coursier from "./components/pages/Coursier";
-import Propos from "./components/pages/Propos";
-import Reserv from "./components/pages/Reserv";
-import Suivi from "./components/pages/Suivi";
-import Cookies from "./components/pages/Cookies";
-import Confidential from "./components/pages/Confidential";
-import Termes from "./components/pages/Termes";
-import NotFound from "./components/pages/NotFound";
-import VerifyEmail from "./components/pages/VerifyEmail";
-import Entreprise from "./components/pages/Entreprise";
-import Client from "./components/pages/Client";
-import Contact from "./components/pages/Contact";
-import Admin from "./components/ADMIN/Admin";
 import PrivateRoute from "./components/pages/PrivateRoute";
+import { useTheme } from './components/context/ThemeContext';
 
-// Typage pour les routes
-type RouteConfig = {
-  path: string;
-  element: React.ReactNode;
-};
+// Lazy-loaded page components
+const App = lazy(() => import("./App"));
+const SignIn = lazy(() => import("./components/pages/SignIn"));
+const SignUp = lazy(() => import("./components/pages/SignUp"));
+const Coursier = lazy(() => import("./components/pages/Coursier"));
+const Propos = lazy(() => import("./components/pages/Propos"));
+const Reserv = lazy(() => import("./components/pages/Reserv"));
+const Suivi = lazy(() => import("./components/pages/Suivi"));
+const Cookies = lazy(() => import("./components/pages/Cookies"));
+const Confidential = lazy(() => import("./components/pages/Confidential"));
+const Termes = lazy(() => import("./components/pages/Termes"));
+const NotFound = lazy(() => import("./components/pages/NotFound"));
+const VerifyEmail = lazy(() => import("./components/pages/VerifyEmail"));
+const Entreprise = lazy(() => import("./components/pages/Entreprise"));
+const Client = lazy(() => import("./components/pages/Client"));
+const Contact = lazy(() => import("./components/pages/Contact"));
+const Admin = lazy(() => import("./components/ADMIN/Admin"));
+const ResetPassword = lazy(() => import("./components/pages/ResetPassword"));
 
-// Tableau de routes avec typage
-const routes: RouteConfig[] = [
-  { path: "/", element: <App /> },
-  { path: "/login", element: <SignIn /> },
-  { path: "/inscription", element: <SignUp /> },
-  { path: "/coursier", element: <PrivateRoute><Coursier /></PrivateRoute> },
-  { path: "/client", element: <PrivateRoute><Client /></PrivateRoute> },
-  { path: "/entreprise", element: <PrivateRoute><Entreprise /></PrivateRoute> },
-  { path: "/propos", element: <Propos /> },
-  { path: "/reserv", element: <PrivateRoute><Reserv /></PrivateRoute> },
-  { path: "/suivi", element: <PrivateRoute><Suivi /></PrivateRoute> },
-  { path: "/cookies", element: <Cookies /> },
-  { path: "/contact", element: <Contact /> },
-  { path: "/confidential", element: <Confidential /> },
-  { path: "/termes", element: <Termes /> },
-  { path: "/verify-email", element: <VerifyEmail /> },
-  { path: "/admin", element: <PrivateRoute requireAdmin={true}><Admin /></PrivateRoute> },
-  { path: "*", element: <NotFound /> },
-];
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 function AppWrapper() {
   const googleClientId = import.meta.env.VITE_APP_GOOGLE_CLIENT_ID;
-  if (!googleClientId) {
-    console.error('VITE_APP_GOOGLE_CLIENT_ID is not defined in .env');
-  }
+  const { isDarkMode } = useTheme();
 
   return (
-    <GoogleOAuthProvider clientId={googleClientId || ''}>
-      <ToastContainer position="top-right" theme="dark" />
-      <Routes>
-        {routes.map((route, index) => (
-          <Route key={index} path={route.path} element={route.element} />
-        ))}
-      </Routes>
+    <GoogleOAuthProvider clientId={googleClientId || ""}>
+      <ToastContainer
+        position="top-right"
+        theme={isDarkMode ? "dark" : "light"}
+        aria-live="polite"
+      />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/login" element={<SignIn />} />
+          <Route path="/inscription" element={<SignUp />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/coursier" element={<PrivateRoute><Coursier /></PrivateRoute>} />
+          <Route path="/client" element={<PrivateRoute><Client /></PrivateRoute>} />
+          <Route path="/entreprise" element={<PrivateRoute><Entreprise /></PrivateRoute>} />
+          <Route path="/propos" element={<Propos />} />
+          <Route path="/reserv" element={<PrivateRoute><Reserv /></PrivateRoute>} />
+          <Route path="/suivi" element={<PrivateRoute><Suivi /></PrivateRoute>} />
+          <Route path="/cookies" element={<Cookies />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/confidential" element={<Confidential />} />
+          <Route path="/termes" element={<Termes />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/admin" element={<PrivateRoute requireAdmin={true}><Admin /></PrivateRoute>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </GoogleOAuthProvider>
   );
 }

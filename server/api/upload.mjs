@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
@@ -110,16 +112,30 @@ const messaging = getMessaging();
 
 // Configuration Express
 const app = express();
+
+// Security headers
+app.use(helmet());
+
+// CORS — origins driven by environment variable
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['https://debutant-011.onrender.com', 'http://localhost:5173'];
+
 app.use(cors({
-  origin: [
-    'https://debutant-011.onrender.com',
-    'http://localhost:5173'
-  ],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+
+// Health check
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// Rate limiters
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+const generalLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false });
+const publicLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
 
 // Configuration Multer
 const upload = multer({
@@ -157,12 +173,9 @@ const verifyToken = async (req, res, next) => {
   } catch (error) {
     console.error('Erreur de vérification du token:', error);
     if (error.code === 'auth/id-token-expired') {
-      return res.status(401).json({
-        error: 'Token expiré',
-        details: 'Le token Firebase ID a expiré. Veuillez rafraîchir votre token depuis le client.',
-      });
+      return res.status(401).json({ error: 'Token expiré' });
     }
-    return res.status(401).json({ error: 'Token invalide', details: error.message });
+    return res.status(401).json({ error: 'Token invalide' });
   }
 };
 
@@ -301,7 +314,7 @@ const notifyAdmins = async (title, body, type = 'GENERAL', data = {}) => {
 };
 
 // Route inscription
-app.post('/api/auth/signup', async (req, res) => {
+app.post('/api/auth/signup', authLimiter, async (req, res) => {
   try {
     const { firstName, lastName, email, phone, address, password } = req.body;
     // Validation des données
@@ -311,8 +324,8 @@ app.post('/api/auth/signup', async (req, res) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Email invalide' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
+    if (password.length < 8 || !/[0-9!@#$%^&*]/.test(password)) {
+      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères dont un chiffre ou caractère spécial' });
     }
     if (phone.length < 8) {
       return res.status(400).json({ error: 'Numéro de téléphone invalide' });
@@ -342,15 +355,15 @@ app.post('/api/auth/signup', async (req, res) => {
     // Renvoyer customToken dans la réponse
     res.status(200).json({
       message: "Inscription réussie. Veuillez vérifier votre email.",
-      customToken // Ajout du customToken
+      customToken
     });
   } catch (error) {
     console.error('Erreur lors de l\'inscription:', error);
-    res.status(500).json({ error: 'Erreur lors de l\'inscription', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de l\'inscription' });
   }
 });
 
-app.get('/api/auth/check-email-verified/:uid', async (req, res) => {
+app.get('/api/auth/check-email-verified/:uid', authLimiter, async (req, res) => {
   try {
     const { uid } = req.params;
 
@@ -367,12 +380,12 @@ app.get('/api/auth/check-email-verified/:uid', async (req, res) => {
     }
   } catch (error) {
     console.error('Erreur vérification email:', error);
-    res.status(500).json({ error: 'Erreur lors de la vérification de l\'email', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la vérification de l\'email' });
   }
 });
 
 // Route connexion
-app.post('/api/auth/signin', async (req, res) => {
+app.post('/api/auth/signin', authLimiter, async (req, res) => {
   try {
     const { email, password, fcmToken } = req.body;
 
@@ -389,7 +402,7 @@ app.post('/api/auth/signin', async (req, res) => {
     } catch (error) {
       console.error("Erreur recherche utilisateur:", error);
       if (error.code === 'auth/user-not-found') {
-        return res.status(401).json({ error: 'Utilisateur non trouvé' });
+        return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       }
       throw new Error(`Erreur recherche utilisateur: ${error.message}`);
     }
@@ -417,11 +430,8 @@ app.post('/api/auth/signin', async (req, res) => {
       throw new Error(`Erreur mise à jour Firestore: ${firestoreError.message}`);
     }
 
-    // Envoyer notification de connexion
-    await sendNotification(
-      userRecord.uid,
-      'Vous êtes connecté à votre compte Dynamism Express.'
-    );
+    // Notification de connexion (fire-and-forget)
+    sendNotification(userRecord.uid, 'Connexion', 'Vous êtes connecté à votre compte Dynamism Express.').catch(() => {});
 
     const customToken = await auth.createCustomToken(userRecord.uid);
     console.log('Custom token généré pour:', userRecord.uid);
@@ -441,7 +451,7 @@ app.post('/api/auth/signin', async (req, res) => {
     let statusCode = 500;
 
     if (error.code === 'auth/wrong-password') {
-      errorMessage = 'Mot de passe incorrect';
+      errorMessage = 'Email ou mot de passe incorrect';
       statusCode = 401;
     } else if (error.code === 'auth/too-many-requests') {
       errorMessage = 'Trop de tentatives. Réessayez plus tard.';
@@ -451,12 +461,12 @@ app.post('/api/auth/signin', async (req, res) => {
       statusCode = 403;
     }
 
-    res.status(statusCode).json({ error: errorMessage, details: error.message });
+    res.status(statusCode).json({ error: errorMessage });
   }
 });
 
 // Route connexion Google
-app.post('/api/auth/signin-google', async (req, res) => {
+app.post('/api/auth/signin-google', authLimiter, async (req, res) => {
   try {
     const { idToken, fcmToken } = req.body;
 
@@ -516,11 +526,8 @@ app.post('/api/auth/signin-google', async (req, res) => {
       await userRef.set(userData);
     }
 
-    // Envoyer notification de connexion
-    await sendNotification(
-      uid,
-      'Vous êtes connecté à votre compte via Google.'
-    );
+    // Notification de connexion (fire-and-forget)
+    sendNotification(uid, 'Connexion', 'Vous êtes connecté à votre compte via Google.').catch(() => {});
 
     const customToken = await auth.createCustomToken(uid);
 
@@ -535,7 +542,7 @@ app.post('/api/auth/signin-google', async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur connexion Google:', error);
-    res.status(500).json({ error: 'Erreur lors de la connexion avec Google', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la connexion avec Google' });
   }
 });
 
@@ -554,7 +561,7 @@ app.post('/api/upload', authenticateUser, upload.single('file'), async (req, res
     res.json({ secure_url: result.secure_url, public_id: result.public_id });
   } catch (error) {
     console.error('Erreur upload:', error);
-    res.status(500).json({ error: 'Erreur lors de l’upload', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de l’upload' });
   }
 });
 
@@ -627,7 +634,7 @@ const createCourier = async (req, res, collectionName) => {
     });
   } catch (error) {
     console.error(`Erreur création ${collectionName}:`, error);
-    res.status(500).json({ error: 'Erreur lors de l’enregistrement de la candidature', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de l’enregistrement de la candidature' });
   }
 };
 
@@ -670,7 +677,7 @@ const getCourier = async (req, res, collectionName) => {
     });
   } catch (error) {
     console.error(`Erreur récupération ${collectionName}:`, error);
-    res.status(500).json({ error: `Erreur lors de la récupération du ${collectionName}`, details: error.message });
+    res.status(500).json({ error: `Erreur lors de la récupération du ${collectionName}` });
   }
 };
 
@@ -686,7 +693,7 @@ const getAllCouriers = async (req, res, collectionName) => {
     });
   } catch (error) {
     console.error(`Erreur récupération ${collectionName}:`, error);
-    res.status(500).json({ error: `Erreur lors de la récupération des ${collectionName}`, details: error.message });
+    res.status(500).json({ error: `Erreur lors de la récupération des ${collectionName}` });
   }
 };
 
@@ -742,7 +749,7 @@ const updateCourier = async (req, res, collectionName) => {
     });
   } catch (error) {
     console.error(`Erreur mise à jour ${collectionName}:`, error);
-    res.status(500).json({ error: `Erreur lors de la mise à jour du ${collectionName}`, details: error.message });
+    res.status(500).json({ error: `Erreur lors de la mise à jour du ${collectionName}` });
   }
 };
 
@@ -768,7 +775,7 @@ const deleteCourier = async (req, res, collectionName) => {
     });
   } catch (error) {
     console.error(`Erreur suppression ${collectionName}:`, error);
-    res.status(500).json({ error: `Erreur lors de la suppression du ${collectionName}`, details: error.message });
+    res.status(500).json({ error: `Erreur lors de la suppression du ${collectionName}` });
   }
 };
 
@@ -807,7 +814,7 @@ app.get('/api/truecoursiers/available', async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur récupération coursiers disponibles:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des coursiers', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération des coursiers' });
   }
 });
 
@@ -874,7 +881,7 @@ app.post('/api/feedback/submit', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur soumission avis:', error);
-    res.status(500).json({ error: 'Erreur lors de la soumission de l\'avis', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la soumission de l\'avis' });
   }
 });
 
@@ -898,7 +905,7 @@ app.get('/api/commandes/user', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur récupération commandes:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des commandes', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération des commandes' });
   }
 });
 
@@ -912,13 +919,20 @@ app.get('/api/commandes/:id', authenticateUser, async (req, res) => {
       return res.status(404).json({ error: 'Commande non trouvée' });
     }
 
+    const orderData = orderDoc.data();
+    const userDoc = await db.collection('users').doc(req.user.uid).get();
+    const isAdmin = userDoc.exists && userDoc.data().role === 'admin';
+    if (orderData.clientId !== req.user.uid && !isAdmin) {
+      return res.status(403).json({ error: 'Accès non autorisé' });
+    }
+
     res.status(200).json({
       message: 'Commande récupérée avec succès',
-      data: { id: orderDoc.id, ...orderDoc.data() },
+      data: { id: orderDoc.id, ...orderData },
     });
   } catch (error) {
     console.error('Erreur récupération commande:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération de la commande', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération de la commande' });
   }
 });
 
@@ -970,7 +984,7 @@ app.get('/api/commandes', authenticateUser, restrictToAdmin, async (req, res) =>
     });
   } catch (error) {
     console.error('Erreur récupération commandes:', error);
-    res.status(500).json({ error: 'Erreur serveur', details: error.message });
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
@@ -998,7 +1012,7 @@ app.get('/api/truecoursiers/:id/public', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur récupération coursier:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération du coursier', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération du coursier' });
   }
 });
 
@@ -1101,7 +1115,7 @@ app.post('/api/commandes/create', authenticateUser, async (req, res) => {
       specialInstructions: specialInstructions || '',
       insurance: !!insurance,
       amount,
-      status,
+      status: 'PENDING',
       distance,
       estimatedTime,
       courierId,
@@ -1153,7 +1167,7 @@ app.post('/api/commandes/create', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur création commande:', error);
-    res.status(500).json({ error: 'Erreur lors de la création de la commande', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la création de la commande' });
   }
 });
 
@@ -1174,21 +1188,21 @@ app.patch('/api/commandes/:id', authenticateUser, async (req, res) => {
       return res.status(404).json({ error: 'Commande non trouvée' });
     }
 
+    const orderData = doc.data();
+    const userDoc = await db.collection('users').doc(req.user.uid).get();
+    const isAdmin = userDoc.exists && userDoc.data().role === 'admin';
+    if (orderData.clientId !== req.user.uid && !isAdmin) {
+      return res.status(403).json({ error: 'Accès non autorisé' });
+    }
+
     await commandeRef.update({ status, updatedAt: new Date().toISOString() });
 
-    const orderData = doc.data();
-    await sendNotification(
-      orderData.clientId,
-      'Mise à jour de commande',
-      `Votre commande #${id} est maintenant ${status}.`,
-      'ORDER_UPDATE',
-      { orderId: id }
-    );
+    sendNotification(orderData.clientId, 'Mise à jour de commande', `Votre commande #${id} est maintenant ${status}.`, 'ORDER_UPDATE', { orderId: id }).catch(() => {});
 
     res.status(200).json({ data: { id, status } });
   } catch (error) {
     console.error('Erreur mise à jour commande:', error);
-    res.status(500).json({ error: 'Erreur serveur', details: error.message });
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
@@ -1203,11 +1217,18 @@ app.delete('/api/commandes/:id', authenticateUser, async (req, res) => {
       return res.status(404).json({ error: 'Commande non trouvée' });
     }
 
+    const orderData = doc.data();
+    const userDoc = await db.collection('users').doc(req.user.uid).get();
+    const isAdmin = userDoc.exists && userDoc.data().role === 'admin';
+    if (orderData.clientId !== req.user.uid && !isAdmin) {
+      return res.status(403).json({ error: 'Accès non autorisé' });
+    }
+
     await commandeRef.delete();
     res.status(200).json({ message: 'Commande supprimée avec succès' });
   } catch (error) {
     console.error('Erreur suppression commande:', error);
-    res.status(500).json({ error: 'Erreur serveur', details: error.message });
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
@@ -1229,7 +1250,7 @@ app.get('/api/clients', [authenticateUser, restrictToAdmin], async (req, res) =>
     res.status(200).json({ data: clients });
   } catch (error) {
     console.error('Erreur récupération clients:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des clients', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération des clients' });
   }
 });
 
@@ -1265,7 +1286,7 @@ app.get('/api/settings', authenticateUser, restrictToAdmin, async (req, res) => 
     res.status(200).json({ data: responseData });
   } catch (error) {
     console.error('Erreur récupération paramètres:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des paramètres', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération des paramètres' });
   }
 });
 
@@ -1312,7 +1333,7 @@ app.patch('/api/settings', authenticateUser, restrictToAdmin, async (req, res) =
     res.status(200).json({ message: 'Paramètres mis à jour avec succès', data: settingsData });
   } catch (error) {
     console.error('Erreur mise à jour paramètres:', error);
-    res.status(500).json({ error: 'Erreur lors de la mise à jour des paramètres', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la mise à jour des paramètres' });
   }
 });
 
@@ -1339,7 +1360,7 @@ app.get('/api/clients/:clientId/orders', [authenticateUser, restrictToAdmin], as
     res.status(200).json({ data: orders });
   } catch (error) {
     console.error('Erreur récupération commandes:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des commandes', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération des commandes' });
   }
 });
 
@@ -1370,7 +1391,7 @@ app.post('/api/coursiers/:id/approve', authenticateUser, restrictToAdmin, async 
     });
   } catch (error) {
     console.error('Erreur transfert coursier:', error);
-    res.status(500).json({ error: 'Erreur lors du transfert du coursier', details: error.message });
+    res.status(500).json({ error: 'Erreur lors du transfert du coursier' });
   }
 });
 
@@ -1404,7 +1425,7 @@ app.get('/api/users/me', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur récupération utilisateur:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération de l\'utilisateur', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération de l\'utilisateur' });
   }
 });
 
@@ -1445,7 +1466,7 @@ app.patch('/api/users/preferences', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur mise à jour préférences:', error);
-    res.status(500).json({ error: 'Erreur lors de la mise à jour des préférences', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la mise à jour des préférences' });
   }
 });
 
@@ -1480,7 +1501,7 @@ app.post('/api/notifications/send', authenticateUser, restrictToAdmin, async (re
     res.status(200).json({ message: 'Notification envoyée avec succès' });
   } catch (error) {
     console.error('❌ Erreur générale envoi notification:', error);
-    res.status(500).json({ error: 'Erreur lors de l\'envoi de la notification', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de l\'envoi de la notification' });
   }
 });
 
@@ -1511,7 +1532,7 @@ app.post('/api/notifications/register', authenticateUser, async (req, res) => {
     res.status(200).json({ message: 'Token FCM enregistré avec succès', fcmToken: fcmToken || null });
   } catch (error) {
     console.error('❌ Erreur enregistrement fcmToken:', error.message, error.stack);
-    res.status(500).json({ error: 'Erreur lors de l\'enregistrement du token FCM', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de l\'enregistrement du token FCM' });
   }
 });
 
@@ -1544,7 +1565,7 @@ app.get('/api/notifications', authenticateUser, async (req, res) => {
     res.status(200).json({ data: notifications });
   } catch (error) {
     console.error('❌ Erreur récupération notifications:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des notifications', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération des notifications' });
   }
 });
 
@@ -1562,16 +1583,16 @@ app.post('/api/notifications/mark-read', authenticateUser, async (req, res) => {
 
     const batch = db.batch();
     for (const id of notificationIds) {
-      const notificationRef = db.collection('notifications').doc(id);
-      batch.update(notificationRef, { read: true, updatedAt: new Date().toISOString() });
+      const notifDoc = await db.collection('notifications').doc(id).get();
+      if (!notifDoc.exists || notifDoc.data().userId !== userId) continue;
+      batch.update(db.collection('notifications').doc(id), { read: true, updatedAt: new Date().toISOString() });
     }
 
     await batch.commit();
-    console.log(`✅ ${notificationIds.length} notifications marquées comme lues pour ${userId}`);
     res.status(200).json({ message: 'Notifications marquées comme lues' });
   } catch (error) {
-    console.error('❌ Erreur marquage notifications:', error);
-    res.status(500).json({ error: 'Erreur lors du marquage des notifications', details: error.message });
+    console.error('Erreur marquage notifications:', error);
+    res.status(500).json({ error: 'Erreur lors du marquage des notifications' });
   }
 });
 
@@ -1593,11 +1614,11 @@ app.get('/api/interactions', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur récupération interactions:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des interactions', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la récupération des interactions' });
   }
 });
 
-app.post('/api/newsletter/subscribe', async (req, res) => {
+app.post('/api/newsletter/subscribe', publicLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -1632,12 +1653,12 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
     res.status(201).json({ message: 'Inscription à la newsletter réussie' });
   } catch (error) {
     console.error('Erreur inscription newsletter:', error.message, error.stack);
-    res.status(500).json({ error: 'Erreur lors de l\'inscription à la newsletter', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de l\'inscription à la newsletter' });
   }
 });// Add this route before the server start (app.listen)
 
 // Submit contact form message
-app.post('/api/contact/submit', async (req, res) => {
+app.post('/api/contact/submit', publicLimiter, async (req, res) => {
   try {
     const { name, email, message, userId } = req.body;
 
@@ -1680,11 +1701,11 @@ app.post('/api/contact/submit', async (req, res) => {
     res.status(201).json({ message: 'Message envoyé avec succès' });
   } catch (error) {
     console.error('Erreur envoi message:', error.message, error.stack);
-    res.status(500).json({ error: 'Erreur lors de l\'envoi du message', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de l\'envoi du message' });
   }
 });
 
-app.get('/api/messages', verifyToken, async (req, res) => {
+app.get('/api/messages', verifyToken, restrictToAdmin, async (req, res) => {
   try {
     const messagesSnapshot = await db.collection('user-sms').get();
     const messages = messagesSnapshot.docs.map(doc => ({
@@ -1692,16 +1713,15 @@ app.get('/api/messages', verifyToken, async (req, res) => {
       ...doc.data(),
     }));
 
-    console.log(`Récupération de ${messages.length} messages`);
     res.status(200).json({ data: messages });
   } catch (error) {
-    console.error('Erreur récupération messages:', error.message, error.stack);
+    console.error('Erreur récupération messages:', error.message);
     res.status(500).json({ error: 'Erreur lors de la récupération des messages' });
   }
 });
 
 // Route pour envoyer un email de vérification
-app.post('/api/auth/send-verification-email', async (req, res) => {
+app.post('/api/auth/send-verification-email', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -1719,7 +1739,7 @@ app.post('/api/auth/send-verification-email', async (req, res) => {
       }
 
       const actionCodeSettings = {
-        url: 'https://debutant-011.onrender.com', // Modifier ici pour rediriger vers /login
+        url: process.env.APP_URL || 'https://debutant-011.onrender.com',
         handleCodeInApp: true,
       };
 
@@ -1736,15 +1756,11 @@ app.post('/api/auth/send-verification-email', async (req, res) => {
     }
   } catch (error) {
     console.error('Erreur envoi email de vérification:', error);
-    res.status(500).json({ error: 'Erreur lors de l\'envoi de l\'email de vérification', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de l\'envoi de l\'email de vérification' });
   }
 });
 
-app.get('/api/test', (req, res) => {
-  res.status(200).json({ message: 'Server is running', cloudinary: process.env.CLOUDINARY_CLOUD_NAME });
-});
-
-app.post('/api/auth/check-email', async (req, res) => {
+app.post('/api/auth/check-email', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -1761,11 +1777,11 @@ app.post('/api/auth/check-email', async (req, res) => {
     }
   } catch (error) {
     console.error('Erreur vérification email:', error);
-    res.status(500).json({ error: 'Erreur lors de la vérification de l\'email', details: error.message });
+    res.status(500).json({ error: 'Erreur lors de la vérification de l\'email' });
   }
 });
 
-app.use("/", (req, res)=>{
+app.use("/", (_req, res) => {
   res.send("Le server est lancé déjà...")
 })
 

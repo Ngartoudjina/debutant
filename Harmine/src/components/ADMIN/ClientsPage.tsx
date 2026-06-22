@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
+import { API_URL } from '../pages/config';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +42,7 @@ const ClientsPage: React.FC = () => {
       }
 
       console.log('📡 Envoi de la requête fetchClients avec token:', token.substring(0, 10) + '...');
-      const response = await fetch('https://debutant.onrender.com/api/clients', {
+      const response = await fetch(`${API_URL}/api/clients`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -55,10 +56,9 @@ const ClientsPage: React.FC = () => {
       const data = await response.json();
       console.log('✅ Données reçues de /api/clients:', data);
       setClients(data.data || []);
-      
     } catch (error: any) {
       console.error('❌ Erreur lors du chargement des clients:', error);
-      
+      toast.error(error instanceof Error ? error.message : "Une erreur est survenue");
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +73,7 @@ const ClientsPage: React.FC = () => {
       }
 
       console.log(`📡 Récupération des commandes pour clientId: ${clientId}`);
-      const response = await fetch(`https://debutant.onrender.com/api/clients/${clientId}/orders`, {
+      const response = await fetch(`${API_URL}/api/clients/${clientId}/orders`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -89,7 +89,7 @@ const ClientsPage: React.FC = () => {
       return data.data;
     } catch (error: any) {
       console.error('❌ Erreur lors de la récupération des commandes:', error);
-      
+      toast.error(error instanceof Error ? error.message : "Une erreur est survenue");
       return [];
     } finally {
       setIsLoadingOrders(false);
@@ -125,7 +125,7 @@ const ClientsPage: React.FC = () => {
         message: notification.message,
       });
 
-      const response = await fetch('https://debutant.onrender.com/api/notifications/send', {
+      const response = await fetch(`${API_URL}/api/notifications/send`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -157,9 +157,10 @@ const ClientsPage: React.FC = () => {
       console.log('✅ Réponse serveur:', data);
       
       setNotification({ title: '', message: '' });
+      toast.success("Notification envoyée avec succès");
     } catch (error: any) {
       console.error('❌ Erreur lors de l\'envoi de la notification:', error);
-      
+      toast.error(error instanceof Error ? error.message : "Une erreur est survenue");
     } finally {
       setIsSendingNotification(false);
     }
@@ -182,70 +183,72 @@ const ClientsPage: React.FC = () => {
               <span className="ml-2">Chargement des clients...</span>
             </div>
           ) : (
-            <Table>
-              <TableCaption>Liste des clients enregistrés</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Téléphone</TableHead>
-                  <TableHead>Adresse</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {clients.length === 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableCaption>Liste des clients enregistrés</TableCaption>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6 text-gray-500">
-                      Aucun client disponible
-                    </TableCell>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Téléphone</TableHead>
+                    <TableHead>Adresse</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ) : (
-                  clients.map((client) => (
-                    <TableRow key={client.id}>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Avatar>
-                            <AvatarFallback>{client.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <span>{client.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{client.email}</TableCell>
-                      <TableCell>{client.phone}</TableCell>
-                      <TableCell>{client.address}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewOrders(client)}
-                          disabled={isLoadingOrders}
-                          aria-label={`Voir les commandes de ${client.name}`}
-                        >
-                          {isLoadingOrders && selectedClient?.id === client.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Chargement...
-                            </>
-                          ) : (
-                            'Voir les commandes'
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-blue-500"
-                          onClick={() => setSelectedClient(client)}
-                          aria-label={`Contacter ${client.name}`}
-                        >
-                          Contacter
-                        </Button>
+                </TableHeader>
+                <TableBody>
+                  {clients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-6 text-gray-500">
+                        Aucun client disponible
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    clients.map((client) => (
+                      <TableRow key={client.id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Avatar>
+                              <AvatarFallback>{client.name[0]}</AvatarFallback>
+                            </Avatar>
+                            <span>{client.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{client.email}</TableCell>
+                        <TableCell>{client.phone}</TableCell>
+                        <TableCell>{client.address}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewOrders(client)}
+                            disabled={isLoadingOrders}
+                            aria-label={`Voir les commandes de ${client.name}`}
+                          >
+                            {isLoadingOrders && selectedClient?.id === client.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Chargement...
+                              </>
+                            ) : (
+                              'Voir les commandes'
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-blue-500"
+                            onClick={() => setSelectedClient(client)}
+                            aria-label={`Contacter ${client.name}`}
+                          >
+                            Contacter
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -281,34 +284,36 @@ const ClientsPage: React.FC = () => {
                   <span className="ml-2">Chargement des commandes...</span>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID Commande</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Montant</TableHead>
-                      <TableHead>Statut</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedClient.orders.length === 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-6 text-gray-500">
-                          Aucune commande pour ce client
-                        </TableCell>
+                        <TableHead>ID Commande</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Montant</TableHead>
+                        <TableHead>Statut</TableHead>
                       </TableRow>
-                    ) : (
-                      selectedClient.orders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell>{order.id}</TableCell>
-                          <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{order.amount}</TableCell>
-                          <TableCell>{order.status}</TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedClient.orders.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-6 text-gray-500">
+                            Aucune commande pour ce client
+                          </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        selectedClient.orders.map((order) => (
+                          <TableRow key={order.id}>
+                            <TableCell>{order.id}</TableCell>
+                            <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                            <TableCell>{order.amount}</TableCell>
+                            <TableCell>{order.status}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </div>
           </CardContent>

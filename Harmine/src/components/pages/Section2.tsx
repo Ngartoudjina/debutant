@@ -2,11 +2,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { Truck, PackageCheck, WalletCards, MapPin } from "lucide-react";
 
+// Animation variants (module-level — stable references, no re-creation on each render)
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.6 } }
+};
+
 export default function Features() {
-  const fadeIn = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.6 } }
-  };
 
   return (
     <section className="py-12 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">

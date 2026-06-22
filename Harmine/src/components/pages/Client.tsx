@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
+import { API_URL } from './config';
+import { useTheme } from '../context/ThemeContext';
 import {
   Home,
   Package,
@@ -18,12 +20,13 @@ import {
   Menu,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-toastify";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { requestNotificationPermission, onMessageListener } from "../../../firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import { SwipeableList, SwipeableListItem, TrailingActions, SwipeAction } from "react-swipeable-list";
 import "react-swipeable-list/dist/styles.css";
+import CookieConsentBanner from "../cookies/CookieConsentBanner";
 
 // Interfaces TypeScript
 interface Address {
@@ -66,11 +69,6 @@ interface Notification {
   read: boolean;
 }
 
-interface Stats {
-  ordersThisMonth: number;
-  totalSpent: string;
-}
-
 interface Interaction {
   message: string;
   createdAt: string;
@@ -91,11 +89,6 @@ interface FirebaseMessage {
   };
 }
 
-interface CookieConsentBannerProps {
-  onAccept: () => void;
-  onLearnMore: () => void;
-}
-
 // Lazy-load Map components
 const MapContainer = React.lazy(() => import("react-leaflet").then(({ MapContainer }) => ({ default: MapContainer })));
 const TileLayer = React.lazy(() => import("react-leaflet").then(({ TileLayer }) => ({ default: TileLayer })));
@@ -112,8 +105,8 @@ L.Icon.Default.mergeOptions({
 });
 
 const Client: React.FC = () => {
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [activeSection, setActiveSection] = useState<"dashboard" | "support">("dashboard");
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [isPersonalizationOpen, setIsPersonalizationOpen] = useState<boolean>(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
@@ -137,7 +130,6 @@ const Client: React.FC = () => {
   });
   const [orders, setOrders] = useState<Order[]>([]);
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
-  const [stats, setStats] = useState<Stats>({ ordersThisMonth: 0, totalSpent: "0" });
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +137,7 @@ const Client: React.FC = () => {
   const navigate = useNavigate();
   const auth = getAuth();
   const colorOptions = ["#3B82F6", "#10B981", "#EF4444", "#8B5CF6", "#F59E0B"];
+  const feedbackTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Protéger la route
   useEffect(() => {
@@ -156,15 +149,10 @@ const Client: React.FC = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Gérer le thème
+  // Synchroniser la couleur principale
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
     document.documentElement.style.setProperty("--primary-color", userPreferences.primaryColor);
-  }, [isDarkMode, userPreferences.primaryColor]);
+  }, [userPreferences.primaryColor]);
 
   const getIdToken = useCallback(async (): Promise<string> => {
     try {
@@ -172,7 +160,6 @@ const Client: React.FC = () => {
       if (!user) throw new Error("Utilisateur non authentifié");
       return await user.getIdToken();
     } catch (error) {
-      console.error("");
       throw error;
     }
   }, [auth]);
@@ -210,7 +197,7 @@ const Client: React.FC = () => {
   };
 
   const fetchUserData = async (token: string) => {
-    const response = await fetchWithRetry("https://debutant.onrender.com/api/users/me", {
+    const response = await fetchWithRetry(`${API_URL}/api/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const userData = await response.json();
@@ -218,7 +205,7 @@ const Client: React.FC = () => {
   };
 
   const fetchOrders = async (token: string) => {
-    const response = await fetchWithRetry("https://debutant.onrender.com/api/commandes/user", {
+    const response = await fetchWithRetry(`${API_URL}/api/commandes/user`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const ordersData = await response.json();
@@ -230,7 +217,7 @@ const Client: React.FC = () => {
   };
 
   const fetchNotifications = async (token: string) => {
-    const response = await fetchWithRetry("https://debutant.onrender.com/api/notifications", {
+    const response = await fetchWithRetry(`${API_URL}/api/notifications`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const notificationsData = await response.json();
@@ -241,7 +228,7 @@ const Client: React.FC = () => {
   };
 
   const fetchInteractions = async (token: string) => {
-    const response = await fetchWithRetry("https://debutant.onrender.com/api/interactions", {
+    const response = await fetchWithRetry(`${API_URL}/api/interactions`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const interactionsData = await response.json();
@@ -253,15 +240,13 @@ const Client: React.FC = () => {
     setError(null);
     try {
       const token = await getIdToken();
-      await fetchUserData(token);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      await fetchOrders(token);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      await fetchNotifications(token);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      await fetchInteractions(token);
+      await Promise.all([
+        fetchUserData(token),
+        fetchOrders(token),
+        fetchNotifications(token),
+        fetchInteractions(token),
+      ]);
     } catch (error) {
-      console.error("Erreur lors du chargement des données:", error);
       setError((error as Error).message);
     } finally {
       setLoading(false);
@@ -285,7 +270,7 @@ const Client: React.FC = () => {
         }
         const fcmToken = await requestNotificationPermission();
         if (fcmToken) {
-          const response = await fetch("https://debutant.onrender.com/api/notifications/register", {
+          const response = await fetch(`${API_URL}/api/notifications/register`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -310,9 +295,8 @@ const Client: React.FC = () => {
               ...prev,
             ]);
           })
-          .catch((error) => console.error("Erreur lors de l'écoute des messages:", error));
+          .catch(() => {});
       } catch (error) {
-        console.error("Erreur lors de l'initialisation des notifications:", error);
         toast.error("Erreur lors de l'initialisation des notifications");
       }
     };
@@ -332,20 +316,12 @@ const Client: React.FC = () => {
     };
   }, [orders]);
 
-  useEffect(() => {
-    setStats(calculatedStats);
-  }, [calculatedStats]);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
-  };
-
   const updatePrimaryColor = async (color: string) => {
     try {
       const token = await getIdToken();
       setUserPreferences((prev) => ({ ...prev, primaryColor: color }));
       document.documentElement.style.setProperty("--primary-color", color);
-      const response = await fetch("https://debutant.onrender.com/api/users/preferences", {
+      const response = await fetch(`${API_URL}/api/users/preferences`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -354,10 +330,8 @@ const Client: React.FC = () => {
         body: JSON.stringify({ primaryColor: color }),
       });
       if (!response.ok) throw new Error("Erreur lors de la mise à jour de la couleur");
-      
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de la couleur:", error);
-      
+      // silently ignore color update failures
     }
   };
 
@@ -365,7 +339,7 @@ const Client: React.FC = () => {
     try {
       const token = await getIdToken();
       setUserPreferences((prev) => ({ ...prev, dashboardLayout: newOrder }));
-      const response = await fetch("https://debutant.onrender.com/api/users/preferences", {
+      const response = await fetch(`${API_URL}/api/users/preferences`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -374,22 +348,19 @@ const Client: React.FC = () => {
         body: JSON.stringify({ dashboardLayout: newOrder }),
       });
       if (!response.ok) throw new Error("Erreur lors de la mise à jour de la disposition");
-      
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de la disposition:", error);
-      
+      // silently ignore layout update failures
     }
   };
 
   const fetchAvailableCouriers = async (token: string): Promise<Courier[]> => {
     try {
-      const response = await fetchWithRetry("https://debutant.onrender.com/api/truecoursiers/available", {
+      const response = await fetchWithRetry(`${API_URL}/api/truecoursiers/available`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const couriersData = await response.json();
       return couriersData.data;
     } catch (error) {
-      console.error("Erreur lors de la récupération des coursiers:", error);
       throw error;
     }
   };
@@ -417,10 +388,15 @@ const Client: React.FC = () => {
       }
       const courierId = couriers[0].id;
 
-      const pickupLat = 48.8566; // Placeholder
-      const pickupLng = 2.3522;
-      const deliveryLat = 48.8606;
-      const deliveryLng = 2.3622;
+      const pickupLat = quickOrder.pickupAddress.lat;
+      const pickupLng = quickOrder.pickupAddress.lng;
+      const deliveryLat = quickOrder.deliveryAddress.lat;
+      const deliveryLng = quickOrder.deliveryAddress.lng;
+
+      if (!pickupLat || !pickupLng || !deliveryLat || !deliveryLng) {
+        toast.error("Coordonnées GPS manquantes. Veuillez saisir des adresses valides avec coordonnées.");
+        return;
+      }
 
       const distance = Math.sqrt(
         Math.pow(deliveryLat - pickupLat, 2) + Math.pow(deliveryLng - pickupLng, 2)
@@ -434,7 +410,7 @@ const Client: React.FC = () => {
 
       const estimatedTime = `${Math.round(distance * 2)} minutes`;
 
-      const response = await fetch("https://debutant.onrender.com/api/commandes/create", {
+      const response = await fetch(`${API_URL}/api/commandes/create`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -475,15 +451,14 @@ const Client: React.FC = () => {
       });
       fetchOrders(token);
     } catch (error) {
-      console.error("Erreur lors de la création de la commande:", error);
-      
+      toast.error((error as Error).message || "Erreur lors de la création de la commande");
     }
   };
 
   const handleFeedbackSubmit = async (orderId: string, rating: number, comment: string) => {
     try {
       const token = await getIdToken();
-      const response = await fetch("https://debutant.onrender.com/api/feedback/submit", {
+      const response = await fetch(`${API_URL}/api/feedback/submit`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -499,15 +474,14 @@ const Client: React.FC = () => {
       if (!response.ok) throw new Error("Erreur lors de la soumission de l'avis");
       toast.success("Avis envoyé !");
     } catch (error) {
-      console.error("Erreur lors de la soumission de l'avis:", error);
-      
+      toast.error((error as Error).message || "Erreur lors de la soumission de l'avis");
     }
   };
 
   const markNotificationRead = async (notificationId: string) => {
     try {
       const token = await getIdToken();
-      const response = await fetch("https://debutant.onrender.com/api/notifications/mark-read", {
+      const response = await fetch(`${API_URL}/api/notifications/mark-read`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -519,10 +493,8 @@ const Client: React.FC = () => {
       setNotifications((prev) =>
         prev.map((notif) => (notif.id === notificationId ? { ...notif, read: true } : notif))
       );
-      
     } catch (error) {
-      console.error("Erreur lors du marquage de la notification:", error);
-      
+      // silently ignore
     }
   };
 
@@ -531,7 +503,7 @@ const Client: React.FC = () => {
       const token = await getIdToken();
       const unreadNotifications = notifications.filter((notif) => !notif.read).map((notif) => notif.id);
       if (unreadNotifications.length === 0) return;
-      const response = await fetch("https://debutant.onrender.com/api/notifications/mark-read", {
+      const response = await fetch(`${API_URL}/api/notifications/mark-read`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -543,17 +515,15 @@ const Client: React.FC = () => {
       setNotifications((prev) =>
         prev.map((notif) => (unreadNotifications.includes(notif.id) ? { ...notif, read: true } : notif))
       );
-      
     } catch (error) {
-      console.error("Erreur lors du marquage des notifications:", error);
-      
+      // silently ignore
     }
   };
 
   const dismissNotification = async (notificationId: string) => {
     try {
       const token = await getIdToken();
-      const response = await fetch("https://debutant.onrender.com/api/notifications/mark-read", {
+      const response = await fetch(`${API_URL}/api/notifications/mark-read`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -563,17 +533,15 @@ const Client: React.FC = () => {
       });
       if (!response.ok) throw new Error("Erreur lors de la suppression de la notification");
       setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
-      
     } catch (error) {
-      console.error("Erreur lors de la suppression de la notification:", error);
-      
+      // silently ignore
     }
   };
 
   const clearAllNotifications = async () => {
     try {
       const token = await getIdToken();
-      const response = await fetch("https://debutant.onrender.com/api/notifications/mark-read", {
+      const response = await fetch(`${API_URL}/api/notifications/mark-read`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -583,10 +551,8 @@ const Client: React.FC = () => {
       });
       if (!response.ok) throw new Error("Erreur lors de la suppression des notifications");
       setNotifications([]);
-      
     } catch (error) {
-      console.error("Erreur lors de la suppression des notifications:", error);
-      
+      // silently ignore
     }
   };
 
@@ -604,7 +570,7 @@ const Client: React.FC = () => {
 
     try {
       const token = await getIdToken();
-      const response = await fetch("https://debutant.onrender.com/api/contact/submit", {
+      const response = await fetch(`${API_URL}/api/contact/submit`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -621,8 +587,7 @@ const Client: React.FC = () => {
       toast.success("Message envoyé avec succès");
       e.currentTarget.reset();
     } catch (error) {
-      console.error("Erreur lors de l'envoi du message:", error);
-      
+      toast.error((error as Error).message || "Erreur lors de l'envoi du message");
     }
   };
 
@@ -943,21 +908,6 @@ const Client: React.FC = () => {
     </AnimatePresence>
   );
 
-  const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onAccept, onLearnMore }) => {
-  return (
-    <div>
-      <p>
-        Nous utilisons des cookies pour vous garantir la meilleure expérience sur notre site. 
-        En continuant votre navigation, vous acceptez notre utilisation des cookies.
-      </p>
-      <div>
-        <button onClick={onAccept}>Accepter</button>
-        <button onClick={onLearnMore}>En savoir plus</button>
-      </div>
-    </div>
-  );
-};
-
   const renderDashboard = () => {
     const widgetMap: { [key: string]: JSX.Element } = {
       orders: (
@@ -1062,13 +1012,13 @@ const Client: React.FC = () => {
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-center">
               <p className="text-sm font-semibold text-gray-800 dark:text-gray-200" style={{ color: userPreferences.primaryColor }}>
-                {stats.ordersThisMonth}
+                {calculatedStats.ordersThisMonth}
               </p>
               <p className="text-gray-600 dark:text-gray-400 text-sm">Commandes ce mois</p>
             </div>
             <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-center">
               <p className="text-sm font-semibold text-gray-800 dark:text-gray-200" style={{ color: userPreferences.primaryColor }}>
-                {stats.totalSpent} €
+                {calculatedStats.totalSpent} €
               </p>
               <p className="text-gray-600 dark:text-gray-400 text-sm">Dépenses totales</p>
             </div>
@@ -1250,6 +1200,7 @@ const Client: React.FC = () => {
             </div>
           </div>
           <textarea
+            ref={feedbackTextareaRef}
             className="w-full bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             placeholder="Votre commentaire..."
             defaultValue="Livraison rapide et coursier sympathique."
@@ -1262,8 +1213,7 @@ const Client: React.FC = () => {
             onClick={() => {
               const deliveredOrder = orders.find((order) => order.status === "DELIVERED");
               if (deliveredOrder) {
-                const comment = (document.querySelector("textarea") as HTMLTextAreaElement)?.value ||
-                  "Livraison rapide et coursier sympathique.";
+                const comment = feedbackTextareaRef.current?.value || '';
                 handleFeedbackSubmit(deliveredOrder.id, 4, comment);
               }
             }}
@@ -1330,7 +1280,6 @@ const Client: React.FC = () => {
         isDarkMode ? "bg-gray-900" : "bg-gray-50"
       } text-gray-900 dark:text-gray-100 p-4 font-sans relative`}
     >
-      <Toaster position="top-center" />
       {renderPersonalizationModal()}
       {renderNotifications()}
       {renderMenu()}

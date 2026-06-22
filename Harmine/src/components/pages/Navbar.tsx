@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTheme } from '../context/ThemeContext';
 import logo from '/logo-dynamism1.png';
 import {
   NavigationMenu,
@@ -84,10 +85,10 @@ const ListItem = React.forwardRef<HTMLAnchorElement, ListItemProps>(
 ListItem.displayName = 'ListItem';
 
 export default function Navbar(): JSX.Element {
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [notificationsCount, setNotificationsCount] = useState<number>(0);
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -193,12 +194,6 @@ export default function Navbar(): JSX.Element {
     };
   }, [isMenuOpen, showNotifications]);
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-  };
-
   const toggleMenu = (): void => {
     setIsMenuOpen(!isMenuOpen);
     console.log('Menu ouvert ?', !isMenuOpen);
@@ -228,7 +223,7 @@ export default function Navbar(): JSX.Element {
           <a href="/" className="flex items-center group">
             <img
               src={logo}
-              alt="Logo"
+              alt="Dynamism Express - Accueil"
               className="w-14 h-14 sm:w-16 sm:h-16 transition-transform group-hover:scale-105"
             />
             <span className="ml-2 text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
@@ -268,7 +263,7 @@ export default function Navbar(): JSX.Element {
 
           {/* Hamburger menu for mobile */}
           <button
-            className="md:hidden focus:outline-none z-50"
+            className="md:hidden focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded-sm z-50"
             onClick={toggleMenu}
             aria-label="Toggle menu"
           >

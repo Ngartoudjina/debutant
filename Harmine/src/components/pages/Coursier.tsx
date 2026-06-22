@@ -1,4 +1,6 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+﻿import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { API_URL } from './config';
+import { useTheme } from '../context/ThemeContext';
 import { motion } from "framer-motion";
 import {
   User,
@@ -106,30 +108,14 @@ const initialFormData: FormData = {
 };
 
 const Courier: React.FC = () => {
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filePreviewUrls, setFilePreviewUrls] = useState<{
     [key: string]: string;
   }>({});
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null); 
-
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
-
-  const [darkMode, setDarkMode] = useState(false);
-  
-    useEffect(() => {
-      document.documentElement.classList.toggle('dark', darkMode);
-    }, [darkMode]);
-  
-    const togleDarkMode = () => {
-      setDarkMode((prev) => !prev);
-    };
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
 
   useEffect(() => {
@@ -327,7 +313,7 @@ const Courier: React.FC = () => {
   
       // Envoyer la requête directement à l'API principale avec tous les fichiers
       console.log("Envoi des données à createCourier");
-      const response = await fetch("https://debutant.onrender.com/api/coursiers/createCourier", {
+      const response = await fetch(`${API_URL}/api/coursiers/createCourier`, {
         method: "POST",
         body: formDataToSend,
         headers: {
@@ -459,7 +445,7 @@ const Courier: React.FC = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:via-gray-900 dark:to-blue-900 flex flex-col items-center justify-center px-4 py-12">
       <Navbar />
-      <ThemeToggle darkMode={darkMode} toggleDarkMode={togleDarkMode} />
+      <ThemeToggle />
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}

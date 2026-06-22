@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import Navbar from "./components/pages/Navbar";
 import Footer from "./components/pages/Footer";
 import Header from "./components/pages/Header";
@@ -13,20 +12,10 @@ import NotificationsSetup from './components/pages/NotificationsSetup';
 
 function App() {
 
-  const [darkMode, setDarkMode] = useState(false);
-  
-    useEffect(() => {
-      document.documentElement.classList.toggle('dark', darkMode);
-    }, [darkMode]);
-  
-    const toggleDarkMode = () => {
-      setDarkMode((prev) => !prev);
-    };
-
   return (
     <div>
       <NotificationsSetup />
-      <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <ThemeToggle />
       <Navbar />
       <Header />
       <Section3 />

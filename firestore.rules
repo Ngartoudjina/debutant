@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users — each user can only read/write their own document; admins can read all
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+    }
+
+    // Orders — clients read/delete their own; status updates restricted to backend (Admin SDK bypasses rules)
+    match /commandes/{orderId} {
+      allow read: if isAuthenticated() && (
+        resource.data.clientId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.clientId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (
+        resource.data.clientId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // Notifications — users read their own only; writes are backend-only
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Approved couriers — public read for available list; write is admin-only
+    match /truecoursiers/{courierId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Courier applications — applicant reads their own; admin reads all
+    match /coursiers/{courierId} {
+      allow read: if isOwner(courierId) || isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == courierId;
+      allow update, delete: if isAdmin();
+    }
+
+    // Feedback — authenticated clients can create; anyone authenticated can read
+    match /feedback/{feedbackId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // Newsletter subscriptions — public create; admin read
+    match /user-mail/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Contact messages — public create; admin read
+    match /user-sms/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // System settings — admin only
+    match /parametres/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Interactions — users read their own; backend writes
+    match /interactions/{docId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+  }
+}

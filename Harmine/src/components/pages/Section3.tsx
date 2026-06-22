@@ -1,6 +1,17 @@
 import { motion } from "framer-motion";
 import { Rocket, Shield, Clock, Heart } from "lucide-react";
 
+// Animation variants (module-level)
+const listVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
+
 export default function Section3() {
   // Données pour les cartes
   const features = [
@@ -49,13 +60,17 @@ export default function Section3() {
         </motion.div>
 
         {/* Cartes des fonctionnalités */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          variants={listVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
           {features.map((feature, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: index * 0.2 }}
+              variants={cardVariants}
               className="backdrop-blur-sm bg-white dark:bg-white/5 rounded-2xl p-8 border border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20 transition-all duration-300 transform hover:-translate-y-2 shadow-lg dark:shadow-none"
             >
               <div className="flex flex-col items-center text-center">
@@ -76,7 +91,7 @@ export default function Section3() {
               </div>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Call-to-Action */}
         <motion.div

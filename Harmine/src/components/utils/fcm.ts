@@ -1,4 +1,5 @@
-import { getToken, onMessage } from "firebase/messaging";
+﻿import { getToken, onMessage } from "firebase/messaging";
+import { API_URL } from '../pages/config';
 import { getMessagingInstance } from "../../../firebaseConfig";
 import axios from "axios";
 import type { User as FirebaseUser } from "firebase/auth";
@@ -89,7 +90,7 @@ export const setupFCM = async (user: FirebaseUser) => {
     const idToken = await user.getIdToken(true);
     console.log("🌐 Envoi token pour userId:", user.uid);
     await axios.post(
-      "https://debutant.onrender.com/api/notifications/register",
+      `${API_URL}/api/notifications/register`,
       {
         fcmToken: fcmToken || null,
         userId: user.uid,
@@ -111,7 +112,7 @@ export const setupFCM = async (user: FirebaseUser) => {
       try {
         const idToken = await user.getIdToken(true);
         await axios.post(
-          "https://debutant.onrender.com/api/notifications/register",
+          `${API_URL}/api/notifications/register`,
           {
             fcmToken: null,
             userId: user.uid,

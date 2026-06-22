@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
+import { API_URL } from '../pages/config';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -59,7 +60,7 @@ const fetchCouriers = async (
 
   const endpoint =
     collection === "coursiers" ? "/api/coursiers" : "/api/truecoursiers";
-  const response = await fetch(`https://debutant.onrender.com${endpoint}`, {
+  const response = await fetch(`${API_URL}${endpoint}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -136,7 +137,6 @@ const CouriersPage: React.FC = () => {
       } else {
         setRegisteredCouriers(fetchedCouriers);
       }
-      toast.success(`Coursiers ${collection} chargés avec succès`);
     } catch (error: any) {
       toast.error(error.message || `Erreur lors du chargement des ${collection}`);
     } finally {
@@ -176,7 +176,7 @@ const CouriersPage: React.FC = () => {
         collection === "coursiers"
           ? "/api/coursiers/createCourier"
           : "/api/coursiers/createtrueCourier";
-      const response = await fetch(`https://debutant.onrender.com${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -206,9 +206,9 @@ const CouriersPage: React.FC = () => {
       }
 
       addCourier(newCourier);
-      
+      toast.success("Coursier ajouté avec succès");
     } catch (error: any) {
-      console.error(error.message || `Erreur lors de l'ajout du coursier dans ${collection}`);
+      toast.error(error instanceof Error ? error.message : "Une erreur est survenue");
     }
   };
 
@@ -240,7 +240,7 @@ const CouriersPage: React.FC = () => {
         collection === "coursiers"
           ? `/api/coursiers/${courierId}`
           : `/api/truecoursiers/${courierId}`;
-      const response = await fetch(`https://debutant.onrender.com${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -283,9 +283,9 @@ const CouriersPage: React.FC = () => {
 
       updateCourier(courierId, updatedCourier);
       setSelectedCourier(null);
-      
+      toast.success("Coursier mis à jour avec succès");
     } catch (error: any) {
-      console.error(error.message || `Erreur lors de la mise à jour du coursier dans ${collection}`);
+      toast.error(error instanceof Error ? error.message : "Une erreur est survenue");
     }
   };
 
@@ -293,6 +293,7 @@ const CouriersPage: React.FC = () => {
     courierId: string,
     collection: "coursiers" | "truecoursiers"
   ) => {
+    if (!window.confirm("Désactiver ce coursier ?")) return;
     try {
       const token = localStorage.getItem("authToken");
       if (!token) {
@@ -303,7 +304,7 @@ const CouriersPage: React.FC = () => {
         collection === "coursiers"
           ? `/api/coursiers/${courierId}`
           : `/api/truecoursiers/${courierId}`;
-      const response = await fetch(`https://debutant.onrender.com${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -338,9 +339,9 @@ const CouriersPage: React.FC = () => {
       }
 
       deactivateCourier(courierId);
-      
+      toast.success("Coursier désactivé avec succès");
     } catch (error: any) {
-      console.error(error.message || `Erreur lors de la désactivation dans ${collection}`);
+      toast.error(error instanceof Error ? error.message : "Une erreur est survenue");
     }
   };
 
@@ -348,6 +349,7 @@ const CouriersPage: React.FC = () => {
     courierId: string,
     collection: "coursiers" | "truecoursiers"
   ) => {
+    if (!window.confirm("Supprimer ce coursier définitivement ?")) return;
     try {
       const token = localStorage.getItem("authToken");
       if (!token) {
@@ -358,7 +360,7 @@ const CouriersPage: React.FC = () => {
         collection === "coursiers"
           ? `/api/coursiers/${courierId}`
           : `/api/truecoursiers/${courierId}`;
-      const response = await fetch(`https://debutant.onrender.com${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -383,9 +385,9 @@ const CouriersPage: React.FC = () => {
       }
 
       setCouriers(couriers.filter((courier) => courier.id !== courierId));
-      
+      toast.success("Coursier supprimé avec succès");
     } catch (error: any) {
-      console.error(error.message || `Erreur lors de la suppression dans ${collection}`);
+      toast.error(error instanceof Error ? error.message : "Une erreur est survenue");
     }
   };
 

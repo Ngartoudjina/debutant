@@ -1,4 +1,6 @@
-import { useState, useEffect, FormEvent, ChangeEvent } from "react";
+﻿import { useState, FormEvent, ChangeEvent } from "react";
+import { API_URL } from './config';
+import { useTheme } from '../context/ThemeContext';
 import { motion, useAnimation, AnimationControls } from "framer-motion";
 import { Lock, Mail, Eye, EyeOff, LogIn, UserPlus, Moon, Sun } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -34,31 +36,13 @@ const LoginPage: React.FC = () => {
     email: "",
     password: "",
   });
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [isRememberMe, setIsRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const emailControls = useAnimation();
   const passwordControls = useAnimation();
-
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-      setIsDarkMode(true);
-      document.documentElement.classList.add("dark");
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => {
-      const newDarkMode = !prev;
-      document.documentElement.classList.toggle("dark", newDarkMode);
-      localStorage.setItem("theme", newDarkMode ? "dark" : "light");
-      return newDarkMode;
-    });
-  };
 
   const handleInputFocus = (controls: AnimationControls) => {
     controls.start({
@@ -80,9 +64,7 @@ const LoginPage: React.FC = () => {
     }));
   };
 
-  const setupFCM = async (idToken: string, userId: string): Promise<string | null> => {
-    console.log("Configuration FCM pour userId:", userId);
-
+  const setupFCM = async (idToken: string, _userId: string): Promise<string | null> => {
     try {
       const messaging = await getMessagingInstance();
       let fcmToken: string | null = null;
@@ -115,16 +97,14 @@ const LoginPage: React.FC = () => {
         );
 
         fcmToken = (await Promise.race([tokenPromise, tokenTimeoutPromise])) as string;
-        console.log("Token FCM généré");
 
-        onMessage(messaging, (payload) => {
-          console.log("Notification reçue:", payload);
-          
+        onMessage(messaging, (_payload) => {
+          // background notification handler
         });
       }
 
       const registerPromise = axios.post(
-        "https://debutant.onrender.com/api/notifications/register",
+        `${API_URL}/api/notifications/register`,
         { fcmToken },
         {
           headers: {
@@ -140,15 +120,12 @@ const LoginPage: React.FC = () => {
       );
 
       await Promise.race([registerPromise, registerTimeoutPromise]);
-      console.log("FCM configuré avec succès");
 
       return fcmToken;
     } catch (error: unknown) {
-      console.error("Erreur FCM:", error);
-
       try {
         await axios.post(
-          "https://debutant.onrender.com/api/notifications/register",
+          `${API_URL}/api/notifications/register`,
           { fcmToken: null },
           {
             headers: {
@@ -158,11 +135,10 @@ const LoginPage: React.FC = () => {
             timeout: 3000,
           }
         );
-      } catch (registerError) {
-        console.error("Erreur lors de l'enregistrement FCM null:", registerError);
+      } catch {
+        // FCM null registration failed silently
       }
 
-      
       return null;
     }
   };
@@ -175,10 +151,8 @@ const LoginPage: React.FC = () => {
     const maxRetries = 2;
 
     try {
-      console.log(`Tentative connexion backend ${retryCount + 1}/${maxRetries + 1}`);
-
       const response = await axios.post(
-        "https://debutant.onrender.com/api/auth/signin",
+        `${API_URL}/api/auth/signin`,
         { email, password },
         {
           timeout: 8000,
@@ -186,11 +160,8 @@ const LoginPage: React.FC = () => {
         }
       );
 
-      console.log("Réponse backend reçue");
       return response.data;
     } catch (error: unknown) {
-      console.error(`Erreur backend tentative ${retryCount + 1}:`, error);
-
       if (
         retryCount < maxRetries &&
         error instanceof Error &&
@@ -208,14 +179,9 @@ const LoginPage: React.FC = () => {
     const maxRetries = 2;
 
     try {
-      console.log(`Tentative auth Firebase ${retryCount + 1}/${maxRetries + 1}`);
-
       const userCredential = await signInWithCustomToken(auth, customToken);
-      console.log("Authentification Firebase réussie");
       return userCredential;
     } catch (error: unknown) {
-      console.error(`Erreur Firebase tentative ${retryCount + 1}:`, error);
-
       if (retryCount < maxRetries) {
         await new Promise((resolve) => setTimeout(resolve, 1000 * (retryCount + 1)));
         return authenticateWithFirebase(customToken, retryCount + 1);
@@ -229,11 +195,9 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
 
     if (isLoading) {
-      console.log("Connexion déjà en cours, annulation");
       return;
     }
 
-    console.log("Début connexion avec email:", formData.email);
     setIsLoading(true);
 
     try {
@@ -269,10 +233,7 @@ const LoginPage: React.FC = () => {
       const user = userCredential.user;
       const idToken = await user.getIdToken();
 
-      console.log("Utilisateur connecté:", user.uid);
-
       try {
-        localStorage.setItem("authToken", idToken);
         localStorage.setItem("userId", user.uid);
 
         if (isRememberMe) {
@@ -280,8 +241,8 @@ const LoginPage: React.FC = () => {
         } else {
           localStorage.removeItem("userEmail");
         }
-      } catch (storageError) {
-        console.error("Erreur stockage local:", storageError);
+      } catch {
+        // localStorage unavailable, continue without storing
       }
 
       const userDataPromise = getUserData(user.uid);
@@ -295,39 +256,31 @@ const LoginPage: React.FC = () => {
         throw new Error("Données utilisateur non trouvées");
       }
 
-      console.log("Données utilisateur récupérées");
-
-      setupFCM(idToken, user.uid).catch((error) => {
-        console.error("Erreur FCM non bloquante:", error);
+      setupFCM(idToken, user.uid).catch(() => {
+        // FCM setup failed silently
       });
 
-
       const redirectTo = location.state?.from || (userData.role === "admin" ? "/admin" : "/");
-      console.log("Redirection vers:", redirectTo);
       navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
-      console.error("Erreur connexion:", error);
-
-      
+      const message = error instanceof Error ? error.message : "Erreur de connexion";
+      toast.error(message);
     } finally {
-      console.log("Fin connexion");
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
     if (isLoading) {
-      console.log("Connexion Google déjà en cours");
       return;
     }
 
-    console.log("Début connexion Google");
     setIsLoading(true);
 
     try {
       const response = await Promise.race([
         axios.post(
-          "https://debutant.onrender.com/api/auth/signin-google",
+          `${API_URL}/api/auth/signin-google`,
           { idToken: credentialResponse.credential },
           {
             timeout: 10000,
@@ -340,7 +293,6 @@ const LoginPage: React.FC = () => {
       ]);
 
       const data = response.data;
-      console.log("Réponse Google signin reçue");
 
       if (!data.success) {
         throw new Error(data.error || "Erreur connexion Google");
@@ -361,13 +313,10 @@ const LoginPage: React.FC = () => {
       const user = userCredential.user;
       const idToken = await user.getIdToken();
 
-      console.log("Utilisateur Google connecté:", user.uid);
-
       try {
-        localStorage.setItem("authToken", idToken);
         localStorage.setItem("userId", user.uid);
-      } catch (error) {
-        console.error("Erreur stockage Google:", error);
+      } catch {
+        // localStorage unavailable, continue without storing
       }
 
       const userData = (await Promise.race([
@@ -381,17 +330,15 @@ const LoginPage: React.FC = () => {
         throw new Error("Données utilisateur Google non trouvées");
       }
 
-      setupFCM(idToken, user.uid).catch((error) => {
-        console.error("Erreur FCM Google non bloquante:", error);
+      setupFCM(idToken, user.uid).catch(() => {
+        // FCM setup failed silently
       });
-
-      
 
       const redirectTo = location.state?.from || (userData.role === "admin" ? "/admin" : "/");
       navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
-      console.error("Erreur Google login:", error);
-      
+      const message = error instanceof Error ? error.message : "Erreur de connexion Google";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -429,8 +376,7 @@ const LoginPage: React.FC = () => {
         <div className="mb-6">
           <EnhancedGoogleLogin
             onSuccess={handleGoogleLogin}
-            onError={(error) => {
-              console.error("Erreur Google:", error);
+            onError={() => {
               toast.error("Échec de la connexion avec Google");
             }}
           />
@@ -457,6 +403,7 @@ const LoginPage: React.FC = () => {
                 onFocus={() => handleInputFocus(emailControls)}
                 onBlur={() => handleInputBlur(emailControls)}
                 required
+                autoComplete="email"
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-0"
               />
               <motion.div
@@ -518,6 +465,7 @@ const LoginPage: React.FC = () => {
                 onFocus={() => handleInputFocus(passwordControls)}
                 onBlur={() => handleInputBlur(passwordControls)}
                 required
+                autoComplete="current-password"
                 className="w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-0"
               />
               <motion.div
@@ -566,6 +514,7 @@ const LoginPage: React.FC = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-300 transition"
+                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -624,12 +573,14 @@ const LoginPage: React.FC = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <Link to="/inscription" className="w-full inline-block">
-            <button className="w-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white py-3 rounded-lg transition flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
-              <UserPlus className="w-5 h-5" />
-              <span>Créer un compte</span>
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => navigate("/inscription")}
+            className="w-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white py-3 rounded-lg transition flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            <UserPlus className="w-5 h-5" />
+            <span>Créer un compte</span>
+          </button>
         </div>
       </motion.div>
       <CookieConsentBanner />

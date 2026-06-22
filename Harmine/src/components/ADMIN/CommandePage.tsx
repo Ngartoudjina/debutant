@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
+import { API_URL } from '../pages/config';
 import {
   Table,
   TableBody,
@@ -104,7 +105,7 @@ const CommandePage: React.FC = () => {
 
   // Constantes
   const MAX_RETRIES = 2;
-  const API_BASE_URL = "https://debutant.onrender.com/api";
+  const API_BASE_URL = `${API_URL}/api`;
 
   // Fonction utilitaire pour obtenir le token
   const getAuthToken = (): string | null => {
@@ -247,6 +248,7 @@ const CommandePage: React.FC = () => {
 
   // Fonction pour annuler une commande
   const cancelOrder = async (orderId: string): Promise<void> => {
+    if (!window.confirm("Annuler cette commande ? Cette action est irréversible.")) return;
     try {
       const token = getAuthToken();
       if (!token) {

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
+import { API_URL } from './config';
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import {
   Cloud as CloudIcon,
@@ -31,8 +32,7 @@ import {
   Minus,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import {
   MapContainer,
   TileLayer,
@@ -45,16 +45,8 @@ import "leaflet/dist/leaflet.css";
 import L, { LatLngTuple } from "leaflet";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import {
-  LineChart,
-  Line,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
 import { useLocation, Link, useNavigate } from "react-router-dom";
+import { getAuth } from "firebase/auth";
 
 // Fix Leaflet marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -102,6 +94,7 @@ interface RoutePoint {
 
 interface DeliveryStatus {
   status: "PENDING" | "IN_PROGRESS" | "DELIVERED" | "CANCELLED";
+  createdAt: string;
   estimatedTime: string;
   trackingNumber: string;
   pickupAddress: string;
@@ -169,7 +162,7 @@ const StatusBadge = ({ status }: { status: DeliveryStatus["status"] }) => {
       transition: {
         duration: 1.5,
         repeat: Infinity,
-        repeatType: "reverse",
+        repeatType: "reverse" as const,
       },
     });
   }, [controls]);
@@ -199,11 +192,7 @@ const StatusBadge = ({ status }: { status: DeliveryStatus["status"] }) => {
 
   return (
     <motion.div
-      animate={{
-        opacity: 1,
-        y: 0,
-        ...controls,
-      }}
+      animate={controls}
       className={`bg-gradient-to-r ${statusConfig[status].gradient} text-white px-6 py-2 rounded-full text-sm font-semibold shadow-lg flex items-center gap-2`}
     >
       {status === "PENDING" && <Package className="w-4 h-4" />}
@@ -219,38 +208,47 @@ const StatusBadge = ({ status }: { status: DeliveryStatus["status"] }) => {
 const DeliveryTimeline = ({
   status,
   routeHistory = [],
+  orderCreatedAt,
 }: {
   status: DeliveryStatus["status"];
   routeHistory?: RoutePoint[];
+  orderCreatedAt?: string;
 }) => {
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
+
+  const formatStepTime = (minutesOffset: number): string => {
+    if (!orderCreatedAt) return "";
+    const base = new Date(orderCreatedAt);
+    base.setMinutes(base.getMinutes() + minutesOffset);
+    return base.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  };
 
   const steps = [
     {
       icon: Package,
       label: "Commande reçue",
-      time: "10:30",
+      time: formatStepTime(0),
       done: true,
       details: "Votre commande a été reçue et confirmée par notre système.",
     },
     {
       icon: Check,
       label: "Commande préparée",
-      time: "10:45",
+      time: formatStepTime(15),
       done: status !== "PENDING",
       details: "Votre colis a été emballé et préparé pour l'expédition.",
     },
     {
       icon: Truck,
       label: "En livraison",
-      time: "11:00",
+      time: formatStepTime(30),
       done: status === "DELIVERED",
       details: "Votre colis est en route vers votre adresse de livraison.",
     },
     {
       icon: MapPin,
       label: "Livré",
-      time: "11:30",
+      time: formatStepTime(60),
       done: status === "DELIVERED",
       details: "Votre colis a été livré avec succès à l'adresse indiquée.",
     },
@@ -827,54 +825,13 @@ const DeliveryTips = () => {
 
 // Delivery analytics component
 const DeliveryAnalytics = () => {
-  const deliveryData = [
-    { time: "10:00", eta: 35 },
-    { time: "10:15", eta: 32 },
-    { time: "10:30", eta: 28 },
-    { time: "10:45", eta: 25 },
-    { time: "11:00", eta: 22 },
-    { time: "11:15", eta: 18 },
-    { time: "11:30", eta: 15 },
-    { time: "11:45", eta: 12 },
-  ];
-
   return (
     <div className="bg-white/20 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl p-5 border border-white/20 dark:border-gray-700/50">
       <h3 className="text-base font-medium text-gray-800 dark:text-white mb-4">
         Évolution du temps estimé
       </h3>
-      <div className="h-52">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={deliveryData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-            <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} />
-            <YAxis stroke="#9ca3af" fontSize={12} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "rgba(255, 255, 255, 0.8)",
-                borderRadius: "8px",
-                border: "none",
-                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-              }}
-              labelStyle={{ color: "#374151", fontWeight: 600 }}
-              itemStyle={{ color: "#3b82f6" }}
-              formatter={(value: number) => [`${value} min`, "Temps estimé"]}
-            />
-            <Line
-              type="monotone"
-              dataKey="eta"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={{ r: 4, fill: "#3b82f6", strokeWidth: 2, stroke: "#fff" }}
-              activeDot={{
-                r: 6,
-                fill: "#3b82f6",
-                stroke: "#fff",
-                strokeWidth: 2,
-              }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+      <div className="flex items-center justify-center h-52 text-gray-500 dark:text-gray-400 text-sm text-center px-4">
+        Données analytiques disponibles après livraison
       </div>
     </div>
   );
@@ -923,16 +880,18 @@ const Suivi = () => {
     const fetchOrderData = async () => {
       try {
         setIsLoading(true);
-        const token = localStorage.getItem("authToken");
-        const userId = localStorage.getItem("userId");
-        if (!token || !userId) {
-          throw new Error("Utilisateur non connecté");
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) {
+          navigate("/login");
+          return;
         }
+        const token = await user.getIdToken();
 
         // Utiliser l'orderId si disponible, sinon récupérer la dernière commande
         let order;
         if (orderId) {
-          const response = await fetch(`https://debutant.onrender.com/api/commandes/${orderId}`, {
+          const response = await fetch(`${API_URL}/api/commandes/${orderId}`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -947,7 +906,7 @@ const Suivi = () => {
           }
           order = result.data;
         } else {
-          const response = await fetch(`https://debutant.onrender.com/api/commandes/user`, {
+          const response = await fetch(`${API_URL}/api/commandes/user`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -974,7 +933,7 @@ const Suivi = () => {
 
         // Récupérer les informations du coursier
         const courierResponse = await fetch(
-          `https://debutant.onrender.com/api/truecoursiers/${order.courierId}`,
+          `${API_URL}/api/truecoursiers/${order.courierId}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -1010,6 +969,7 @@ const Suivi = () => {
         const etaMinutes = parseInt(order.estimatedTime) || 15;
         setDeliveryStatus({
           status: order.status,
+          createdAt: order.createdAt,
           estimatedTime: new Date(order.scheduledDate).toLocaleTimeString(
             "fr-FR",
             { hour: "2-digit", minute: "2-digit" }
@@ -1056,8 +1016,7 @@ const Suivi = () => {
           },
         });
       } catch (error: any) {
-        console.error("Erreur lors de la récupération des données:", error);
-        
+        // error is surfaced via the empty deliveryStatus state (shows "Aucune commande trouvée" UI)
       } finally {
         setIsLoading(false);
       }
@@ -1065,19 +1024,24 @@ const Suivi = () => {
     fetchOrderData();
   }, [orderId]);
 
+  // Keep a ref to the latest deliveryStatus to avoid stale closure in the interval
+  const deliveryStatusRef = useRef(deliveryStatus);
+  useEffect(() => {
+    deliveryStatusRef.current = deliveryStatus;
+  }, [deliveryStatus]);
+
   // Simulate real-time status updates
   useEffect(() => {
-    if (!deliveryStatus || deliveryStatus.status !== "IN_PROGRESS") return;
-
     const interval = setInterval(() => {
+      const current = deliveryStatusRef.current;
+      if (!current || current.status !== "IN_PROGRESS") return;
+
       const newLat =
-        deliveryStatus.currentLocation.lat +
-        (deliveryStatus.destination.lat - deliveryStatus.currentLocation.lat) *
-          0.05;
+        current.currentLocation.lat +
+        (current.destination.lat - current.currentLocation.lat) * 0.05;
       const newLng =
-        deliveryStatus.currentLocation.lng +
-        (deliveryStatus.destination.lng - deliveryStatus.currentLocation.lng) *
-          0.05;
+        current.currentLocation.lng +
+        (current.destination.lng - current.currentLocation.lng) * 0.05;
 
       setDeliveryStatus((prev: DeliveryStatus | null) => {
         if (!prev) return null;
@@ -1105,7 +1069,7 @@ const Suivi = () => {
 
       setRoute([
         [newLat, newLng],
-        [deliveryStatus.destination.lat, deliveryStatus.destination.lng],
+        [current.destination.lat, current.destination.lng],
       ]);
 
       if (Math.random() > 0.7) {
@@ -1117,7 +1081,7 @@ const Suivi = () => {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [deliveryStatus]);
+  }, []); // empty dependency array — uses ref to access latest status
 
   const handleEnableNotifications = () => {
     setIsNotificationsEnabled(true);
@@ -1153,12 +1117,14 @@ const Suivi = () => {
 
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
         throw new Error("Utilisateur non connecté");
       }
+      const token = await user.getIdToken();
 
-      const response = await fetch(`https://debutant.onrender.com/api/feedback/submit`, {
+      const response = await fetch(`${API_URL}/api/feedback/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1186,8 +1152,9 @@ const Suivi = () => {
       });
       setShowFeedbackForm(false);
     } catch (error: any) {
-      console.error("Erreur lors de l'envoi du feedback:", error);
-      
+      toast.error(error.message || "Erreur lors de l'envoi du feedback", {
+        position: "bottom-right",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -1263,19 +1230,6 @@ const Suivi = () => {
         darkMode={isDarkMode}
         toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
       />
-      <ToastContainer
-        position="bottom-right"
-        autoClose={4000}
-        theme={isDarkMode ? "dark" : "light"}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
-
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
@@ -1589,6 +1543,7 @@ const Suivi = () => {
           <DeliveryTimeline
             status={deliveryStatus.status}
             routeHistory={deliveryStatus.routeHistory}
+            orderCreatedAt={deliveryStatus.createdAt}
           />
         </motion.div>
 

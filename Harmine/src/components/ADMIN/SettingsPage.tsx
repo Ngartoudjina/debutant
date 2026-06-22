@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
+import { API_URL } from '../pages/config';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,7 +81,7 @@ const SettingsPage: React.FC = () => {
         throw new Error("Aucun token d'authentification trouvé");
       }
 
-      const response = await fetch("https://debutant.onrender.com/api/settings", {
+      const response = await fetch(`${API_URL}/api/settings`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -122,7 +123,7 @@ const SettingsPage: React.FC = () => {
         throw new Error("Aucun token d'authentification trouvé");
       }
 
-      const response = await fetch("https://debutant.onrender.com/api/settings", {
+      const response = await fetch(`${API_URL}/api/settings`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -149,9 +150,9 @@ const SettingsPage: React.FC = () => {
       }
 
       await response.json();
-      
+      toast.success("Paramètres sauvegardés avec succès");
     } catch (error: any) {
-      console.error(error.message || `Erreur lors de la mise à jour des ${section}`);
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la sauvegarde");
     } finally {
       setIsSaving(false);
     }
@@ -220,7 +221,7 @@ const SettingsPage: React.FC = () => {
         setIsSavingZones
       );
     } else {
-      console.error("La zone ne peut pas être vide");
+      toast.error("La zone ne peut pas être vide");
     }
   };
 
@@ -235,7 +236,7 @@ const SettingsPage: React.FC = () => {
         setIsSavingVehicles
       );
     } else {
-      console.error("Type de véhicule invalide ou déjà existant");
+      toast.error("Type de véhicule invalide ou déjà existant");
     }
   };
 

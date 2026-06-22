@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
+import { API_URL } from './config';
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +33,7 @@ export default function VerifyEmailPage() {
         const user = auth.currentUser;
         if (user) {
           // Mettre à jour Firestore via le backend
-          await axios.get(`https://debutant.onrender.com/api/auth/check-email-verified/${user.uid}`);
+          await axios.get(`${API_URL}/api/auth/check-email-verified/${user.uid}`);
           
         } else {
           toast.success("Email vérifié avec succès ! Veuillez vous connecter.");

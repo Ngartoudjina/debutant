@@ -4,6 +4,17 @@ import admin1 from "../../img/admin1.jpg";
 import admin2 from "../../img/admin2.jpg";
 import admin3 from "../../img/admin3.jpg";
 
+// Animation variants (module-level)
+const listVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
+
 export default function Section4() {
   // Données pour les témoignages
   const testimonials = [
@@ -58,13 +69,17 @@ export default function Section4() {
         </motion.div>
 
         {/* Cartes des témoignages */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          variants={listVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
           {testimonials.map((testimonial, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: index * 0.2 }}
+              variants={cardVariants}
               className="bg-white dark:bg-white/5 rounded-2xl p-8 border border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20 transition-all duration-300 transform hover:-translate-y-2 shadow-lg dark:shadow-none"
             >
               <div className="flex flex-col items-center text-center">
@@ -97,7 +112,7 @@ export default function Section4() {
               </div>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Call-to-Action */}
         <motion.div
@@ -107,7 +122,7 @@ export default function Section4() {
           className="mt-16 text-center"
         >
           <a
-            href="/avis"
+            href="/contact"
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full font-medium hover:scale-105 transition-transform shadow-lg"
           >
             <span>Voir tous les avis</span>

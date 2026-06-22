@@ -1,4 +1,6 @@
-import { useState, FormEvent, ChangeEvent, useEffect } from "react";
+﻿import { useState, FormEvent, ChangeEvent } from "react";
+import { API_URL } from './config';
+import { useTheme } from '../context/ThemeContext';
 import { motion } from "framer-motion";
 import {
   User,
@@ -44,32 +46,14 @@ const SignupPage: React.FC = () => {
     confirmPassword: "",
   });
 
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [showPassword, setShowPassword] = useState({
     password: false,
     confirmPassword: false,
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
-
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-      setIsDarkMode(true);
-      document.documentElement.classList.add("dark");
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => {
-      const newDarkMode = !prev;
-      document.documentElement.classList.toggle("dark", newDarkMode);
-      localStorage.setItem("theme", newDarkMode ? "dark" : "light");
-      return newDarkMode;
-    });
-  };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -82,7 +66,7 @@ const SignupPage: React.FC = () => {
   const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
       const response = await axios.post(
-        "https://debutant.onrender.com/api/auth/check-email",
+        `${API_URL}/api/auth/check-email`,
         { email },
         { headers: { "Content-Type": "application/json" }, timeout: 5000 }
       );
@@ -205,7 +189,7 @@ const SignupPage: React.FC = () => {
         console.log("📤 Données envoyées:", requestData);
 
         const response = await axios.post(
-          "https://debutant.onrender.com/api/notifications/register",
+          `${API_URL}/api/notifications/register`,
           requestData,
           {
             headers: {
@@ -233,7 +217,7 @@ const SignupPage: React.FC = () => {
         try {
           const idToken = await user.getIdToken(true);
           await axios.post(
-            "https://debutant.onrender.com/api/notifications/register",
+            `${API_URL}/api/notifications/register`,
             {
               fcmToken: null,
               userId: user.uid,
@@ -306,7 +290,7 @@ const SignupPage: React.FC = () => {
 
       console.log("🌐 Envoi requête inscription...");
       const response = await axios.post(
-        "https://debutant.onrender.com/api/auth/signup",
+        `${API_URL}/api/auth/signup`,
         {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -339,8 +323,7 @@ const SignupPage: React.FC = () => {
         navigate("/login");
       }, 500);
     } catch (error: unknown) {
-      console.error("❌ Erreur inscription:", error);
-      
+      toast.error(error instanceof Error ? error.message : "Erreur lors de l'inscription");
     } finally {
       console.log("🏁 Fin du processus d'inscription");
       setIsLoading(false);
@@ -396,6 +379,7 @@ const SignupPage: React.FC = () => {
                 value={formData.firstName}
                 onChange={handleInputChange}
                 required
+                autoComplete="given-name"
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition text-gray-900 dark:text-gray-100"
               />
             </div>
@@ -410,6 +394,7 @@ const SignupPage: React.FC = () => {
                 value={formData.lastName}
                 onChange={handleInputChange}
                 required
+                autoComplete="family-name"
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition text-gray-900 dark:text-gray-100"
               />
             </div>
@@ -426,6 +411,7 @@ const SignupPage: React.FC = () => {
               value={formData.email}
               onChange={handleInputChange}
               required
+              autoComplete="email"
               className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition text-gray-900 dark:text-gray-100"
             />
           </div>
@@ -481,12 +467,14 @@ const SignupPage: React.FC = () => {
               value={formData.password}
               onChange={handleInputChange}
               required
+              autoComplete="new-password"
               className="w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition text-gray-900 dark:text-gray-100"
             />
             <button
               type="button"
               onClick={() => togglePasswordVisibility("password")}
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-300 transition"
+              aria-label={showPassword.password ? "Masquer" : "Afficher"}
             >
               {showPassword.password ? (
                 <EyeOff className="w-5 h-5" />
@@ -507,12 +495,14 @@ const SignupPage: React.FC = () => {
               value={formData.confirmPassword}
               onChange={handleInputChange}
               required
+              autoComplete="new-password"
               className="w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition text-gray-900 dark:text-gray-100"
             />
             <button
               type="button"
               onClick={() => togglePasswordVisibility("confirmPassword")}
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-300 transition"
+              aria-label={showPassword.confirmPassword ? "Masquer" : "Afficher"}
             >
               {showPassword.confirmPassword ? (
                 <EyeOff className="w-5 h-5" />

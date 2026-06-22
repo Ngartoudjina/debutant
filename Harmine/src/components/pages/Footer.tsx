@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
+import { API_URL } from './config';
 import logo from "../../img/logo-dynamism1.png";
 import { Phone, Mail, MapPin } from "lucide-react";
 import {
@@ -39,7 +40,7 @@ export default function Footer() {
 
     try {
       const response = await axios.post(
-        process.env.REACT_APP_API_URL || "https://debutant.onrender.com/api/newsletter/subscribe",
+        `${API_URL}/api/newsletter/subscribe`,
         { email }
       );
       toast.success(response.data.message, {
@@ -76,12 +77,11 @@ export default function Footer() {
               alt="Logo"
               className="w-16 h-16 mb-6 filter drop-shadow-lg"
             />
-            <h1 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-400 dark:to-purple-500 bg-clip-text text-transparent">
-              Lorem ipsum dolor sit amet consectetur adipisicing elit.
-            </h1>
+            <p className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-400 dark:to-purple-500 bg-clip-text text-transparent">
+              Dynamism Express
+            </p>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Lorem ipsum dolor sit amet consectetur adipisicing elit.
-              Praesentium modi nam velit quo! Sit.
+              Votre partenaire de livraison express au Bénin. Rapide, fiable et transparent.
             </p>
           </div>
 
@@ -159,7 +159,7 @@ export default function Footer() {
               {[
                 { to: "/", text: "Accueil" },
                 { to: "/reserv", text: "Reservation express" },
-                { to: "/suivi", text: "Suivie en temps réel" },
+                { to: "/suivi", text: "Suivi en temps réel" },
                 { to: "/entreprise", text: "Solution Professionnelle" },
               ].map((link) => (
                 <li key={link.to}>

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from '../context/ThemeContext';
 import logo from "/logo-dynamism1.png";
 import ThemeToggle from "../pages/ThemeToggle";
 import {
@@ -80,370 +81,124 @@ interface Message {
   createdAt: string;
 }
 
-const Admin = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activePage, setActivePage] = useState("dashboard");
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userName, setUserName] = useState("PDG Victor Aguiah");
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationsCount, setNotificationsCount] = useState(0);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    activeCouriers: 0,
-    avgDeliveryTime: 0,
-    revenue: 0,
-  });
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [deliveryData, setDeliveryData] = useState([
-    { name: "Lun", commandes: 0 },
-    { name: "Mar", commandes: 0 },
-    { name: "Mer", commandes: 0 },
-    { name: "Jeu", commandes: 0 },
-    { name: "Ven", commandes: 0 },
-    { name: "Sam", commandes: 0 },
-    { name: "Dim", commandes: 0 },
-  ]);
+// ── Extracted top-level components ──────────────────────────────────────────
 
-  useEffect(() => {
-    document.documentElement.classList.remove("dark");
-    setIsDarkMode(false);
-  }, []);
+interface NotificationsPanelProps {
+  showNotifications: boolean;
+  setShowNotifications: (v: boolean) => void;
+  messages: Message[];
+  formatDateRelative: (date: Date, formatType: string, options: { locale: typeof fr }) => string;
+}
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUserId(user.uid);
-        setIsAuthenticated(true);
-        try {
-          const token = await user.getIdToken();
-          localStorage.setItem("authToken", token);
-          const response = await axios.get(
-            `${import.meta.env.VITE_BACKEND_URL}/api/users/me`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          const displayName =
-            response.data?.data?.displayName ||
-            user.displayName ||
-            "Administrateur";
-          setUserName(displayName);
-          await requestNotificationPermission();
-        } catch (error) {
-          console.error("Erreur récupération utilisateur:", error);
-          setUserName(user.displayName || "Administrateur");
-          
-        }
-      } else {
-        setIsAuthenticated(false);
-        setUserId(null);
-        setUserName("PDG Victor Aguiah");
-        setNotifications([]);
-        setNotificationsCount(0);
-        localStorage.removeItem("authToken");
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    const q = query(
-      collection(db, "notifications"),
-      where("userId", "==", userId),
-      where("type", "in", [
-        "NEW_COURIER",
-        "ORDER_UPDATE",
-        "NEW_ORDER",
-        "ADMIN_MESSAGE",
-      ])
-    );
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const updatedNotifications: Notification[] = snapshot.docs.map(
-          (doc) => ({
-            id: doc.id,
-            read: doc.data().read || false,
-            userId: doc.data().userId || "",
-            title: doc.data().title || "Sans titre",
-            message: doc.data().message || "Aucun message",
-            type: doc.data().type || "UNKNOWN",
-            createdAt: doc.data().createdAt || new Date().toISOString(),
-            data: doc.data().data || {},
-          })
-        );
-        updatedNotifications.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        setNotifications(updatedNotifications);
-        setNotificationsCount(
-          updatedNotifications.filter((n) => !n.read).length
-        );
-
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "added" && !change.doc.data().read) {
-            toast.info(`Nouvelle notification: ${change.doc.data().title}`, {
-              position: "top-right",
-              autoClose: 5000,
-            });
-          }
-        });
-      },
-      (error) => {
-        console.error("Erreur listener notifications:", error);
-        
-      }
-    );
-
-    return () => unsubscribe();
-  }, [userId]);
-
-  const fetchAllData = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const token =
-        localStorage.getItem("authToken") ||
-        (await auth.currentUser?.getIdToken());
-      if (!token) throw new Error("Token d'authentification manquant");
-
-      const [ordersResponse, couriersResponse, messagesResponse] =
-        await Promise.all([
-          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/commandes`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/truecoursiers`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/messages`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-
-      console.log("Messages response:", messagesResponse.data);
-
-      const ordersData = Array.isArray(ordersResponse.data?.data)
-        ? ordersResponse.data.data
-        : [];
-      const activeCouriers = Array.isArray(couriersResponse.data?.data)
-        ? couriersResponse.data.data.filter((c: any) => c.status === "ACTIVE")
-            .length
-        : 0;
-      const messagesData = Array.isArray(messagesResponse.data?.data)
-        ? messagesResponse.data.data
-        : [];
-
-      console.log("Messages data to set:", messagesData);
-
-      setStats({
-        totalOrders: ordersData.length,
-        activeCouriers,
-        avgDeliveryTime: ordersData.length
-          ? ordersData.reduce(
-              (sum: number, order: any) => sum + (order.estimatedTime || 0),
-              0
-            ) / ordersData.length
-          : 0,
-        revenue: ordersData.reduce(
-          (sum: number, order: any) => sum + (order.amount || 0),
-          0
-        ),
-      });
-
-      setOrders(ordersData.slice(0, 3));
-      setMessages(messagesData);
-
-      const days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-      const counts = days.map((day, index) => ({
-        name: day,
-        commandes: ordersData.filter(
-          (order: any) => new Date(order.createdAt).getDay() === (index + 1) % 7
-        ).length,
-      }));
-      setDeliveryData(counts);
-    } catch (error) {
-      console.error("Erreur récupération données:", error);
-      
-      setStats({
-        totalOrders: 0,
-        activeCouriers: 0,
-        avgDeliveryTime: 0,
-        revenue: 0,
-      });
-      setOrders([]);
-      setMessages([]);
-      setDeliveryData([
-        { name: "Lun", commandes: 0 },
-        { name: "Mar", commandes: 0 },
-        { name: "Mer", commandes: 0 },
-        { name: "Jeu", commandes: 0 },
-        { name: "Ven", commandes: 0 },
-        { name: "Sam", commandes: 0 },
-        { name: "Dim", commandes: 0 },
-      ]);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (isAuthenticated && userId) {
-      fetchAllData();
-    }
-  }, [isAuthenticated, userId, fetchAllData]);
-
-  const markNotificationsAsRead = async () => {
-    try {
-      const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
-      if (unreadIds.length === 0) return;
-      const token =
-        localStorage.getItem("authToken") ||
-        (await auth.currentUser?.getIdToken());
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/notifications/mark-read`,
-        { notificationIds: unreadIds },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-    } catch (error) {
-      console.error("Erreur marquage notifications:", error);
-      
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      
-    } catch (error) {
-      console.error("Erreur déconnexion:", error);
-      
-    }
-  };
-
-  const formatDateRelative = (
-    date: Date,
-    formatType: string,
-    options: { locale: typeof fr }
-  ) => {
-    if (!isValid(date)) return "Date invalide";
-    if (formatType === "date-time") {
-      return formatDistanceToNow(date, {
-        addSuffix: true,
-        locale: options.locale,
-      });
-    }
-    return format(date, "dd MMM yyyy", { locale: options.locale });
-  };
-
-  const NotificationsPanel = () => {
-    return (
-      <AnimatePresence>
-        {showNotifications && (
+function NotificationsPanel({
+  showNotifications,
+  setShowNotifications,
+  messages,
+  formatDateRelative,
+}: NotificationsPanelProps) {
+  return (
+    <AnimatePresence>
+      {showNotifications && (
+        <motion.div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          onClick={() => setShowNotifications(false)}
+        >
           <motion.div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            onClick={() => setShowNotifications(false)}
+            className="w-11/12 max-w-[500px] mx-auto"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <motion.div
-              className="w-11/12 max-w-[500px] mx-auto"
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-xl">
-                <CardHeader className="relative flex flex-row items-center justify-between p-4">
-                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                    <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <span>Notifications</span>
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 p-2"
-                    onClick={() => setShowNotifications(false)}
-                    aria-label="Fermer le panneau des notifications"
-                  >
-                    <X className="w-5 h-5" />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {messages.length === 0 ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                        Aucun message disponible
-                      </p>
-                    ) : (
-                      messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
-                        >
-                          <div className="rounded-full bg-gray-200 dark:bg-gray-700 p-2">
-                            <MessageCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                {message.name} ({message.email})
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {formatDateRelative(
-                                  new Date(message.createdAt),
-                                  "date-time",
-                                  { locale: fr }
-                                )}
-                              </p>
-                            </div>
-                            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                              {message.message}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              User ID: {message.userId || "anonyme"}
-                            </p>
-                          </div>
+            <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-xl">
+              <CardHeader className="relative flex flex-row items-center justify-between p-4">
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                  <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <span>Notifications</span>
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 p-2"
+                  onClick={() => setShowNotifications(false)}
+                  aria-label="Fermer le panneau des notifications"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {messages.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                      Aucun message disponible
+                    </p>
+                  ) : (
+                    messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                      >
+                        <div className="rounded-full bg-gray-200 dark:bg-gray-700 p-2">
+                          <MessageCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {message.name} ({message.email})
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatDateRelative(
+                                new Date(message.createdAt),
+                                "date-time",
+                                { locale: fr }
+                              )}
+                            </p>
+                          </div>
+                          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                            {message.message}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            User ID: {message.userId || "anonyme"}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
-        )}
-      </AnimatePresence>
-    );
-  };
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "NEW_COURIER":
-        return "🚴";
-      case "ORDER_UPDATE":
-      case "NEW_ORDER":
-        return "📦";
-      case "ADMIN_MESSAGE":
-        return "📩";
-      default:
-        return "🔔";
-    }
-  };
+interface SidebarContentProps {
+  activePage: string;
+  setActivePage: (p: string) => void;
+  setSidebarOpen: (v: boolean) => void;
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
+  userName: string;
+  handleSignOut: () => void;
+}
 
-  const SidebarContent = () => (
+function SidebarContent({
+  activePage,
+  setActivePage,
+  setSidebarOpen,
+  isDarkMode,
+  toggleDarkMode,
+  userName,
+  handleSignOut,
+}: SidebarContentProps) {
+  return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
       <div className="p-4 flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -562,6 +317,270 @@ const Admin = () => {
       </div>
     </div>
   );
+}
+
+// ── Admin component ──────────────────────────────────────────────────────────
+
+const Admin = () => {
+  const { isDarkMode, toggleDarkMode } = useTheme();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activePage, setActivePage] = useState("dashboard");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState("Chargement...");
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationsCount, setNotificationsCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    activeCouriers: 0,
+    avgDeliveryTime: 0,
+    revenue: 0,
+  });
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [deliveryData, setDeliveryData] = useState([
+    { name: "Lun", commandes: 0 },
+    { name: "Mar", commandes: 0 },
+    { name: "Mer", commandes: 0 },
+    { name: "Jeu", commandes: 0 },
+    { name: "Ven", commandes: 0 },
+    { name: "Sam", commandes: 0 },
+    { name: "Dim", commandes: 0 },
+  ]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUserId(user.uid);
+        setIsAuthenticated(true);
+        try {
+          const token = await user.getIdToken();
+          localStorage.setItem("authToken", token);
+          const response = await axios.get(
+            `${import.meta.env.VITE_BACKEND_URL}/api/users/me`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          const displayName =
+            response.data?.data?.displayName ||
+            user.displayName ||
+            "Administrateur";
+          setUserName(displayName);
+          await requestNotificationPermission();
+        } catch {
+          setUserName(user.displayName || "Administrateur");
+          
+        }
+      } else {
+        setIsAuthenticated(false);
+        setUserId(null);
+        setUserName("");
+        setNotifications([]);
+        setNotificationsCount(0);
+        localStorage.removeItem("authToken");
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const q = query(
+      collection(db, "notifications"),
+      where("userId", "==", userId),
+      where("type", "in", [
+        "NEW_COURIER",
+        "ORDER_UPDATE",
+        "NEW_ORDER",
+        "ADMIN_MESSAGE",
+      ])
+    );
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const updatedNotifications: Notification[] = snapshot.docs.map(
+          (doc) => ({
+            id: doc.id,
+            read: doc.data().read || false,
+            userId: doc.data().userId || "",
+            title: doc.data().title || "Sans titre",
+            message: doc.data().message || "Aucun message",
+            type: doc.data().type || "UNKNOWN",
+            createdAt: doc.data().createdAt || new Date().toISOString(),
+            data: doc.data().data || {},
+          })
+        );
+        updatedNotifications.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setNotifications(updatedNotifications);
+        setNotificationsCount(
+          updatedNotifications.filter((n) => !n.read).length
+        );
+
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added" && !change.doc.data().read) {
+            toast.info(`Nouvelle notification: ${change.doc.data().title}`, {
+              position: "top-right",
+              autoClose: 5000,
+            });
+          }
+        });
+      },
+      () => {
+        // snapshot listener error — handled silently
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId]);
+
+  const fetchAllData = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const token =
+        localStorage.getItem("authToken") ||
+        (await auth.currentUser?.getIdToken());
+      if (!token) throw new Error("Token d'authentification manquant");
+
+      const [ordersResponse, couriersResponse, messagesResponse] =
+        await Promise.all([
+          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/commandes`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/truecoursiers`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/messages`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+
+      const ordersData = Array.isArray(ordersResponse.data?.data)
+        ? ordersResponse.data.data
+        : [];
+      const activeCouriers = Array.isArray(couriersResponse.data?.data)
+        ? couriersResponse.data.data.filter((c: any) => c.status === "ACTIVE")
+            .length
+        : 0;
+      const messagesData = Array.isArray(messagesResponse.data?.data)
+        ? messagesResponse.data.data
+        : [];
+
+
+      setStats({
+        totalOrders: ordersData.length,
+        activeCouriers,
+        avgDeliveryTime: ordersData.length
+          ? ordersData.reduce(
+              (sum: number, order: any) => sum + (order.estimatedTime || 0),
+              0
+            ) / ordersData.length
+          : 0,
+        revenue: ordersData.reduce(
+          (sum: number, order: any) => sum + (order.amount || 0),
+          0
+        ),
+      });
+
+      setOrders(ordersData.slice(0, 3));
+      setMessages(messagesData);
+
+      const days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+      const counts = days.map((day, index) => ({
+        name: day,
+        commandes: ordersData.filter(
+          (order: any) => new Date(order.createdAt).getDay() === (index + 1) % 7
+        ).length,
+      }));
+      setDeliveryData(counts);
+    } catch {
+      setStats({
+        totalOrders: 0,
+        activeCouriers: 0,
+        avgDeliveryTime: 0,
+        revenue: 0,
+      });
+      setOrders([]);
+      setMessages([]);
+      setDeliveryData([
+        { name: "Lun", commandes: 0 },
+        { name: "Mar", commandes: 0 },
+        { name: "Mer", commandes: 0 },
+        { name: "Jeu", commandes: 0 },
+        { name: "Ven", commandes: 0 },
+        { name: "Sam", commandes: 0 },
+        { name: "Dim", commandes: 0 },
+      ]);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      fetchAllData();
+    }
+  }, [isAuthenticated, userId, fetchAllData]);
+
+  const markNotificationsAsRead = async () => {
+    try {
+      const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+      if (unreadIds.length === 0) return;
+      const token =
+        localStorage.getItem("authToken") ||
+        (await auth.currentUser?.getIdToken());
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/notifications/mark-read`,
+        { notificationIds: unreadIds },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+    } catch {
+      // marking notifications as read failed — not critical
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      
+    } catch {
+      // sign-out error — not critical
+    }
+  };
+
+  const formatDateRelative = (
+    date: Date,
+    formatType: string,
+    options: { locale: typeof fr }
+  ) => {
+    if (!isValid(date)) return "Date invalide";
+    if (formatType === "date-time") {
+      return formatDistanceToNow(date, {
+        addSuffix: true,
+        locale: options.locale,
+      });
+    }
+    return format(date, "dd MMM yyyy", { locale: options.locale });
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "NEW_COURIER":
+        return "🚴";
+      case "ORDER_UPDATE":
+      case "NEW_ORDER":
+        return "📦";
+      case "ADMIN_MESSAGE":
+        return "📩";
+      default:
+        return "🔔";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
@@ -602,7 +621,15 @@ const Admin = () => {
       <div className="flex flex-col lg:flex-row">
         {/* Sidebar pour desktop */}
         <div className="hidden lg:block lg:w-64 lg:h-screen lg:sticky lg:top-0 lg:overflow-y-auto">
-          <SidebarContent />
+          <SidebarContent
+            activePage={activePage}
+            setActivePage={setActivePage}
+            setSidebarOpen={setSidebarOpen}
+            isDarkMode={isDarkMode}
+            toggleDarkMode={toggleDarkMode}
+            userName={userName}
+            handleSignOut={handleSignOut}
+          />
         </div>
 
         {/* Sidebar mobile animé */}
@@ -615,7 +642,15 @@ const Admin = () => {
               transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
               className="fixed inset-y-0 left-0 w-3/4 max-w-[250px] z-50 lg:hidden"
             >
-              <SidebarContent />
+              <SidebarContent
+            activePage={activePage}
+            setActivePage={setActivePage}
+            setSidebarOpen={setSidebarOpen}
+            isDarkMode={isDarkMode}
+            toggleDarkMode={toggleDarkMode}
+            userName={userName}
+            handleSignOut={handleSignOut}
+          />
             </motion.div>
           )}
         </AnimatePresence>
@@ -1005,11 +1040,15 @@ const Admin = () => {
         </div>
       </div>
 
-      <ThemeToggle
-        darkMode={isDarkMode}
-        toggleDarkMode={toggleDarkMode}
-      />
-      {showNotifications && <NotificationsPanel />}
+      <ThemeToggle />
+      {showNotifications && (
+        <NotificationsPanel
+          showNotifications={showNotifications}
+          setShowNotifications={setShowNotifications}
+          messages={messages}
+          formatDateRelative={formatDateRelative}
+        />
+      )}
     </>
   )}
 </div>

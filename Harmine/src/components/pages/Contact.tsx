@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback, FormEvent, ChangeEvent, memo } from 'react';
+﻿import React, { useState, useCallback, FormEvent, ChangeEvent, memo } from 'react';
+import { API_URL } from './config';
+import { useTheme } from '../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Phone, Mail, Send, Facebook, Instagram, Linkedin, HelpCircle, Users, Star, Clock, Truck, Shield, MessageCircle, ChevronDown, Globe, Award, Link, LucideIcon } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -107,17 +109,9 @@ const ContactPage: React.FC = memo(() => {
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const { isDarkMode: darkMode, toggleDarkMode } = useTheme();
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [language, setLanguage] = useState("fr");
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-  }, [darkMode]);
-
-  const toggleDarkMode = () => {
-    setDarkMode((prev) => !prev);
-  };
 
   // Form Validation
   const validateForm = useCallback(() => {
@@ -150,21 +144,21 @@ const ContactPage: React.FC = memo(() => {
     try {
       const userId = localStorage.getItem("userId") || "";
       const response = await axios.post(
-        "https://debutant.onrender.com/api/contact/submit",
+        `${API_URL}/api/contact/submit`,
         {
           name: formData.name,
           email: formData.email,
+          subject: formData.subject,
           message: formData.message,
           userId,
         }
       );
-      
+      toast.success("Message envoyé avec succès !");
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (error: any) {
-      console.error("Erreur lors de l'envoi du message:", error);
       const errorMessage =
         error.response?.data?.error || "Erreur lors de l'envoi du message.";
-      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -187,14 +181,13 @@ const ContactPage: React.FC = memo(() => {
           email: newsletterEmail,
         }
       );
-      
+      toast.success("Inscription à la newsletter réussie !");
       setNewsletterEmail("");
     } catch (error: any) {
-      console.error("Erreur lors de l'inscription :", error);
       const errorMessage =
         error.response?.data?.error ||
         "Erreur lors de l'inscription à la newsletter.";
-      
+      toast.error(errorMessage);
     }
   };
 
@@ -381,7 +374,7 @@ const ContactPage: React.FC = memo(() => {
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 font-sans">
         <Navbar />
-        <ThemeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        <ThemeToggle />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 max-w-7xl w-full">
           {/* Header */}
           <motion.div
@@ -399,7 +392,7 @@ const ContactPage: React.FC = memo(() => {
             </p>
             <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto">
               <a
-                href="/track-order"
+                href="/suivi"
                 className="inline-flex items-center px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-full hover:bg-blue-700 dark:hover:bg-blue-600 transition-all w-full sm:w-auto justify-center"
                 aria-label="Suivre une commande"
               >

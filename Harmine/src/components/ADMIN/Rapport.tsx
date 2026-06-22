@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
+import { API_URL } from '../pages/config';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -52,7 +53,7 @@ const Rapport: React.FC = () => {
         throw new Error('Aucun token d\'authentification trouvé');
       }
 
-      const ordersResponse = await fetch('https://debutant.onrender.com/api/commandes', {
+      const ordersResponse = await fetch(`${API_URL}/api/commandes`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -67,7 +68,7 @@ const Rapport: React.FC = () => {
       const fetchedOrders: Order[] = ordersData.data || [];
       setOrders(fetchedOrders);
 
-      const clientsResponse = await fetch('https://debutant.onrender.com/api/clients', {
+      const clientsResponse = await fetch(`${API_URL}/api/clients`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

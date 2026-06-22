@@ -1,14 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Sun, Moon, Truck, Package, UserCog } from 'lucide-react';
+import { Sun, Moon, Truck, Package } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
-interface ThemeToggleProps {
-  darkMode: boolean;
-  toggleDarkMode: () => void;
-}
-
-const ThemeToggle: React.FC<ThemeToggleProps> = ({ darkMode, toggleDarkMode }) => {
+const ThemeToggle: React.FC = () => {
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const containerVariants = {
     initial: { opacity: 0 },
     animate: {
@@ -64,10 +61,10 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ darkMode, toggleDarkMode }) =
         whileTap={buttonTap}
         onClick={toggleDarkMode}
         className="p-3 sm:p-4 rounded-full bg-white dark:bg-gray-800 border-2 border-blue-500 dark:border-blue-400 shadow-lg hover:shadow-xl hover:shadow-blue-500/20 dark:hover:shadow-blue-400/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300"
-        aria-label={darkMode ? 'Basculer vers le mode clair' : 'Basculer vers le mode sombre'}
+        aria-label={isDarkMode ? 'Basculer vers le mode clair' : 'Basculer vers le mode sombre'}
       >
         <AnimatePresence mode="wait">
-          {darkMode ? (
+          {isDarkMode ? (
             <motion.div
               key="sun"
               initial={{ rotate: -180, opacity: 0 }}
@@ -123,21 +120,6 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ darkMode, toggleDarkMode }) =
         </Link>
       </motion.div>
 
-      {/* Bouton Admin */}
-      <motion.div variants={buttonVariants}>
-        <Link
-          to="/admin"
-          className="block p-3 sm:p-4 rounded-full bg-white dark:bg-gray-800 border-2 border-purple-500 dark:border-purple-400 shadow-lg hover:shadow-xl hover:shadow-purple-500/20 dark:hover:shadow-purple-400/20 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all duration-300"
-          aria-label="Accéder à la page d'administration"
-        >
-          <motion.div
-            whileHover={buttonHover}
-            whileTap={buttonTap}
-          >
-            <UserCog className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
-          </motion.div>
-        </Link>
-      </motion.div>
     </motion.div>
   );
 };
